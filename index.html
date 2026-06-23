@@ -3754,7 +3754,7 @@ function _adminRenderTable() {
   document.getElementById('admin-main-tbody').innerHTML = rows.map((d, i) => {
     const docIdx = _adminData.docs.indexOf(d);
     const docId  = _adminData.docIds[docIdx] || String(i);
-    return '<tr style="border-bottom:1px solid #1a2030;transition:background .1s" onmouseover="this.style.background='#252836'" onmouseout="this.style.background=''">' +
+    return `<tr style="border-bottom:1px solid #1a2030;transition:background .1s" onmouseover="this.style.background='#252836'" onmouseout="this.style.background=''">` +
       keys.map(k => {
         const val = d[k] !== undefined ? String(d[k]) : '—';
         if (k === 'url' && val.startsWith('http'))
