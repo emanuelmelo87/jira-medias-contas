@@ -8,6 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <style>
     /* ===== Reset & Base ===== */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -457,7 +458,17 @@
         <label for="date-picker">📅</label>
         <input type="date" id="date-picker" class="date-picker-input" onchange="onDateChange(this.value)">
       </div>
-      <button class="btn-refresh" id="btn-refresh" onclick="refreshToday()">⟳ Atualizar</button>
+      
+    <button id="admin-header-btn" onclick="adminOpen()" style="
+      background:rgba(255,255,255,0.12);
+      border:1px solid rgba(255,255,255,0.25);
+      color:#fff;padding:6px 14px;border-radius:6px;
+      font-size:.8rem;font-weight:600;cursor:pointer;
+      display:flex;align-items:center;gap:6px;
+      transition:background .15s">
+      🔐 Admin
+    </button>
+    <button class="btn-refresh" id="btn-refresh" onclick="refreshToday()">⟳ Atualizar</button>
     </div>
   </div>
 </header>
@@ -516,7 +527,6 @@
     <button class="tab-btn" onclick="switchTab(3)">⭐ NPS</button>
     <button class="tab-btn" onclick="switchTab(4)">🏛️ CND</button>
     <button class="tab-btn" onclick="switchTab(5)">👥 Colaboradores</button>
-    <button class="tab-btn" id="tab-btn-admin" onclick="switchTab(7)">🗄️ Admin</button>
   </div>
 
   <!-- Chart Panel -->
@@ -1268,9 +1278,7 @@ function switchTab(idx) {
     const domIdx = [6,0,1,2,3,4,5].indexOf(idx); // ordem das tabs no nav
     document.querySelectorAll('.view')[domIdx]?.classList.add('active');
   }
-  const adminBtn = document.getElementById('tab-btn-admin');
-  if (idx === 7) { adminBtn?.classList.add('active'); renderAdminView(); }
-  else document.querySelectorAll('.tab-btn')[([6,0,1,2,3,4,5].indexOf(idx))]?.classList.add('active');
+  document.querySelectorAll('.tab-btn')[([6,0,1,2,3,4,5].indexOf(idx))]?.classList.add('active');
   activeTab = idx;
   renderView(idx);
 }
@@ -3550,6 +3558,283 @@ function adminExportCSV() {
 }
 
 
+// ============================================================
+// ADMIN — Google Auth + Firestore CRUD
+// ============================================================
+const _ADMIN_ALLOWED = ['emanuel.melo87@gmail.com'];
+const _adminData = { collection: null, docs: [], filtered: [], docIds: [] };
+let _editDocId = null;
+
+function adminOpen() {
+  document.getElementById('admin-overlay').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  firebase.auth().onAuthStateChanged(function(user) {
+    if (user) _adminShowPanel(user);
+    else _adminShowLogin();
+  });
+}
+
+function adminClose() {
+  document.getElementById('admin-overlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function _adminShowLogin() {
+  document.getElementById('admin-login-panel').style.display = 'flex';
+  document.getElementById('admin-data-panel').style.display = 'none';
+  document.getElementById('admin-signout-btn').style.display = 'none';
+  document.getElementById('admin-user-info').textContent = '';
+}
+
+function _adminShowPanel(user) {
+  if (!_ADMIN_ALLOWED.includes(user.email)) {
+    document.getElementById('admin-login-error').textContent = 'Acesso negado: ' + user.email;
+    document.getElementById('admin-login-error').style.display = 'block';
+    firebase.auth().signOut();
+    return;
+  }
+  document.getElementById('admin-login-panel').style.display = 'none';
+  document.getElementById('admin-data-panel').style.display = 'block';
+  document.getElementById('admin-signout-btn').style.display = 'block';
+  document.getElementById('admin-user-info').textContent = user.email;
+  _adminLoadCounts();
+}
+
+function adminSignIn() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({ login_hint: 'emanuel.melo87@gmail.com' });
+  firebase.auth().signInWithPopup(provider)
+    .then(r => _adminShowPanel(r.user))
+    .catch(e => {
+      document.getElementById('admin-login-error').textContent = 'Erro: ' + e.message;
+      document.getElementById('admin-login-error').style.display = 'block';
+    });
+}
+
+function adminSignOut() {
+  firebase.auth().signOut().then(_adminShowLogin);
+}
+
+async function _adminLoadCounts() {
+  for (const col of ['jira_chamados','jira_chamados_issues','_meta']) {
+    try {
+      const snap = await _db.collection(col).get();
+      const el = document.getElementById('card-count-' + col);
+      if (el) el.textContent = snap.size + ' docs';
+    } catch(e) {}
+  }
+}
+
+async function adminLoadCollection(col) {
+  _adminData.collection = col;
+  document.getElementById('admin-table-area').style.display = 'block';
+  document.getElementById('admin-table-title').textContent = col;
+  document.getElementById('admin-main-tbody').innerHTML =
+    '<tr><td colspan="99" style="color:rgba(255,255,255,.4);padding:24px;text-align:center">Carregando…</td></tr>';
+  const snap = await _db.collection(col).get();
+  _adminData.docs   = snap.docs.map(d => d.data());
+  _adminData.docIds = snap.docs.map(d => d.id);
+  _adminData.filtered = _adminData.docs.slice();
+  _adminRenderTable();
+}
+
+function adminTableFilter() {
+  const q = (document.getElementById('admin-table-search').value || '').toLowerCase();
+  _adminData.filtered = q
+    ? _adminData.docs.filter(d => JSON.stringify(d).toLowerCase().includes(q))
+    : _adminData.docs.slice();
+  _adminRenderTable();
+}
+
+function _adminRenderTable() {
+  const rows = _adminData.filtered;
+  document.getElementById('admin-table-count').textContent = rows.length + ' registros';
+  const COL_ORDER = _adminData.collection === 'jira_chamados'
+    ? ['municipio','vertical','total_chamados','slo_estourado','atualizado_em']
+    : _adminData.collection === 'jira_chamados_issues'
+    ? ['key','municipio','vertical','status','slo_horas','responsavel','issuetype','summary','atualizado_em']
+    : Object.keys(rows[0] || {});
+  const keys = COL_ORDER.filter(k => rows.some(d => d[k] !== undefined && d[k] !== ''));
+  if (!keys.length && rows.length) keys.push(...Object.keys(rows[0]));
+  document.getElementById('admin-main-thead').innerHTML =
+    '<tr style="position:sticky;top:0">' +
+    keys.map(k => `<th style="padding:10px 14px;background:#0F1117;color:rgba(255,255,255,.7);font-size:.75rem;font-weight:600;text-align:left;white-space:nowrap;border-bottom:1px solid #2D3748">${k}</th>`).join('') +
+    '<th style="padding:10px 14px;background:#0F1117;color:rgba(255,255,255,.7);font-size:.75rem;font-weight:600;border-bottom:1px solid #2D3748">Ações</th></tr>';
+  document.getElementById('admin-main-tbody').innerHTML = rows.map((d, i) => {
+    const docIdx = _adminData.docs.indexOf(d);
+    const docId  = _adminData.docIds[docIdx] || String(i);
+    return '<tr style="border-bottom:1px solid #1a2030;transition:background .1s" onmouseover="this.style.background='#252836'" onmouseout="this.style.background=''">' +
+      keys.map(k => {
+        const val = d[k] !== undefined ? String(d[k]) : '—';
+        if (k === 'url' && val.startsWith('http'))
+          return `<td style="padding:8px 14px;white-space:nowrap"><a href="${val}" target="_blank" style="color:#0761FF;font-size:.78rem">Abrir</a></td>`;
+        if (k === 'atualizado_em' && val.length > 10)
+          return `<td style="padding:8px 14px;white-space:nowrap;color:rgba(255,255,255,.4);font-size:.78rem">${new Date(val).toLocaleString('pt-BR')}</td>`;
+        if (k === 'slo_horas') {
+          const neg = val.startsWith('-');
+          return `<td style="padding:8px 14px;white-space:nowrap;font-weight:600;color:${neg?'#FC8181':'#68D391'}">${val||'—'}</td>`;
+        }
+        return `<td style="padding:8px 14px;color:#E2E8F0;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${val.replace(/"/g,'&quot;')}">${val}</td>`;
+      }).join('') +
+      `<td style="padding:8px 14px"><button onclick="adminOpenEdit('${docId}')" style="padding:4px 12px;background:#0761FF;border:none;color:#fff;border-radius:5px;font-size:.75rem;cursor:pointer;font-weight:600">Editar</button></td></tr>`;
+  }).join('');
+}
+
+function adminOpenEdit(docId) {
+  _editDocId = docId;
+  const docIdx = _adminData.docIds.indexOf(docId);
+  const data   = _adminData.docs[docIdx] || {};
+  document.getElementById('admin-edit-title').textContent = 'Editar: ' + docId;
+  document.getElementById('admin-edit-status').textContent = '';
+  const SKIP = ['atualizado_em','key','url'];
+  document.getElementById('admin-edit-fields').innerHTML = Object.entries(data)
+    .filter(([k]) => !SKIP.includes(k))
+    .map(([k,v]) => `<div style="margin-bottom:14px"><label style="color:rgba(255,255,255,.6);font-size:.78rem;display:block;margin-bottom:4px">${k}</label><input data-field="${k}" value="${String(v).replace(/"/g,'&quot;')}" style="width:100%;padding:8px 12px;background:#0F1117;border:1px solid #2D3748;border-radius:6px;color:#fff;font-size:.85rem"></div>`).join('');
+  document.getElementById('admin-edit-modal').style.display = 'flex';
+}
+
+function adminCloseEdit() {
+  document.getElementById('admin-edit-modal').style.display = 'none';
+  _editDocId = null;
+}
+
+async function adminSaveEdit() {
+  const inputs  = document.querySelectorAll('#admin-edit-fields input[data-field]');
+  const updates = {};
+  inputs.forEach(inp => {
+    const k = inp.dataset.field, v = inp.value;
+    const num = Number(v);
+    updates[k] = (!isNaN(num) && v.trim() !== '') ? num : v;
+  });
+  updates.atualizado_em = new Date().toISOString();
+  const statusEl = document.getElementById('admin-edit-status');
+  statusEl.style.color = 'rgba(255,255,255,.5)';
+  statusEl.textContent = 'Salvando…';
+  try {
+    await _db.collection(_adminData.collection).doc(_editDocId).update(updates);
+    const idx = _adminData.docIds.indexOf(_editDocId);
+    if (idx >= 0) Object.assign(_adminData.docs[idx], updates);
+    statusEl.style.color = '#68D391';
+    statusEl.textContent = '✅ Salvo!';
+    setTimeout(() => { adminCloseEdit(); _adminRenderTable(); }, 800);
+  } catch(e) {
+    statusEl.style.color = '#FC8181';
+    statusEl.textContent = '❌ Erro: ' + e.message;
+  }
+}
+
+function adminExportCollectionCSV() {
+  const rows = _adminData.filtered;
+  if (!rows.length) return;
+  const keys = Object.keys(rows[0]);
+  const csv = [keys.join(',')].concat(rows.map(r =>
+    keys.map(k => '"' + (r[k]||'').toString().replace(/"/g,'""') + '"').join(',')
+  )).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = (_adminData.collection||'data') + '_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
 </script>
+
+<!-- ═══════════════════════════════════════════════════════
+     PAINEL ADMIN
+═══════════════════════════════════════════════════════ -->
+<div id="admin-overlay" style="display:none;position:fixed;inset:0;z-index:9000;background:#0F1117;overflow-y:auto;font-family:'DM Sans',sans-serif">
+
+  <!-- Header do Admin -->
+  <div style="background:#1C1A23;border-bottom:3px solid #0761FF;padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10">
+    <div style="display:flex;align-items:center;gap:12px">
+      <svg width="80" viewBox="0 0 80 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <text x="0" y="18" font-family="DM Sans,sans-serif" font-size="20" font-weight="700" fill="white">betha</text>
+      </svg>
+      <span style="color:#fff;font-size:1rem;font-weight:600;opacity:.85">Admin</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span id="admin-user-info" style="color:rgba(255,255,255,.65);font-size:.82rem"></span>
+      <button id="admin-signout-btn" onclick="adminSignOut()" style="display:none;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:5px 13px;border-radius:6px;font-size:.8rem;cursor:pointer">Sair</button>
+      <button onclick="adminClose()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:5px 13px;border-radius:6px;font-size:.8rem;cursor:pointer">✕ Fechar</button>
+    </div>
+  </div>
+
+  <!-- Login -->
+  <div id="admin-login-panel" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;gap:20px">
+    <div style="text-align:center;color:#fff;margin-bottom:8px">
+      <div style="font-size:2rem;margin-bottom:8px">🔐</div>
+      <div style="font-size:1.2rem;font-weight:700">Acesso Restrito</div>
+      <div style="font-size:.85rem;color:rgba(255,255,255,.5);margin-top:6px">Apenas administradores autorizados</div>
+    </div>
+    <button onclick="adminSignIn()" style="
+      background:#fff;color:#1C1A23;border:none;padding:13px 28px;
+      border-radius:8px;font-size:.95rem;font-weight:700;cursor:pointer;
+      display:flex;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(0,0,0,.3)">
+      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20H24v8h11.3C33.6 33.1 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.7 1.1 7.8 2.9l6-6C34.2 6.3 29.4 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 20-9 20-20 0-1.3-.1-2.7-.4-4z"/><path fill="#FF3D00" d="M6.3 14.7l7 5.1C15 16 19.2 13 24 13c3 0 5.7 1.1 7.8 2.9l6-6C34.2 6.3 29.4 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.9 13.5-5l-6.2-5.2C29.5 35.5 26.9 36 24 36c-5.2 0-9.6-3-11.3-7.3l-6.9 5.3C9.4 39.8 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20H24v8h11.3c-.9 2.6-2.6 4.8-4.8 6.3l6.2 5.2C40.4 36.2 44 30.6 44 24c0-1.3-.1-2.7-.4-4z"/></svg>
+      Entrar com Google
+    </button>
+    <div id="admin-login-error" style="color:#FC8181;font-size:.82rem;display:none"></div>
+  </div>
+
+  <!-- Painel de dados (visível após login) -->
+  <div id="admin-data-panel" style="display:none;padding:28px;max-width:1400px;margin:0 auto">
+
+    <!-- Cards das coleções -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-bottom:28px">
+      <div onclick="adminLoadCollection('jira_chamados')" style="background:#1C1A23;border:1px solid #2D3748;border-radius:10px;padding:20px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='#0761FF'" onmouseout="this.style.borderColor='#2D3748'">
+        <div style="font-size:1.6rem;margin-bottom:8px">📊</div>
+        <div style="color:#fff;font-weight:700;font-size:1rem">Chamados</div>
+        <div style="color:rgba(255,255,255,.5);font-size:.8rem;margin-top:4px">jira_chamados</div>
+        <div id="card-count-jira_chamados" style="color:#0761FF;font-size:1.4rem;font-weight:700;margin-top:10px">—</div>
+      </div>
+      <div onclick="adminLoadCollection('jira_chamados_issues')" style="background:#1C1A23;border:1px solid #2D3748;border-radius:10px;padding:20px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='#0761FF'" onmouseout="this.style.borderColor='#2D3748'">
+        <div style="font-size:1.6rem;margin-bottom:8px">🎫</div>
+        <div style="color:#fff;font-weight:700;font-size:1rem">Issues</div>
+        <div style="color:rgba(255,255,255,.5);font-size:.8rem;margin-top:4px">jira_chamados_issues</div>
+        <div id="card-count-jira_chamados_issues" style="color:#0761FF;font-size:1.4rem;font-weight:700;margin-top:10px">—</div>
+      </div>
+      <div onclick="adminLoadCollection('_meta')" style="background:#1C1A23;border:1px solid #2D3748;border-radius:10px;padding:20px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='#0761FF'" onmouseout="this.style.borderColor='#2D3748'">
+        <div style="font-size:1.6rem;margin-bottom:8px">⚙️</div>
+        <div style="color:#fff;font-weight:700;font-size:1rem">Metadados</div>
+        <div style="color:rgba(255,255,255,.5);font-size:.8rem;margin-top:4px">_meta</div>
+        <div id="card-count-_meta" style="color:#0761FF;font-size:1.4rem;font-weight:700;margin-top:10px">—</div>
+      </div>
+    </div>
+
+    <!-- Área da tabela -->
+    <div id="admin-table-area" style="display:none;background:#1C1A23;border:1px solid #2D3748;border-radius:10px;overflow:hidden">
+      <!-- Toolbar -->
+      <div style="padding:16px 20px;border-bottom:1px solid #2D3748;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span id="admin-table-title" style="color:#fff;font-weight:700;font-size:1rem"></span>
+        <input id="admin-table-search" type="text" placeholder="Filtrar…" oninput="adminTableFilter()" style="padding:6px 12px;background:#0F1117;border:1px solid #2D3748;border-radius:6px;color:#fff;font-size:.83rem;width:200px">
+        <button onclick="adminExportCollectionCSV()" style="padding:6px 14px;background:#0761FF;color:#fff;border:none;border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer">⬇ CSV</button>
+        <span id="admin-table-count" style="color:rgba(255,255,255,.4);font-size:.78rem;margin-left:auto"></span>
+      </div>
+      <!-- Tabela -->
+      <div style="overflow-x:auto;max-height:60vh;overflow-y:auto">
+        <table id="admin-main-table" style="width:100%;border-collapse:collapse;font-size:.82rem">
+          <thead id="admin-main-thead"></thead>
+          <tbody id="admin-main-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de edição -->
+<div id="admin-edit-modal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center">
+  <div style="background:#1C1A23;border:1px solid #2D3748;border-radius:12px;padding:28px;width:90%;max-width:560px;max-height:85vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h3 id="admin-edit-title" style="color:#fff;margin:0;font-size:1rem">Editar documento</h3>
+      <button onclick="adminCloseEdit()" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:1.2rem;cursor:pointer">✕</button>
+    </div>
+    <div id="admin-edit-fields"></div>
+    <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+      <button onclick="adminCloseEdit()" style="padding:8px 20px;background:#2D3748;border:none;color:#fff;border-radius:6px;cursor:pointer;font-size:.85rem">Cancelar</button>
+      <button onclick="adminSaveEdit()" style="padding:8px 20px;background:#0761FF;border:none;color:#fff;border-radius:6px;cursor:pointer;font-size:.85rem;font-weight:600">Salvar</button>
+    </div>
+    <div id="admin-edit-status" style="margin-top:10px;font-size:.8rem;text-align:center"></div>
+  </div>
+</div>
+
 </body>
 </html>
