@@ -1116,13 +1116,26 @@ async function loadAllData() {
   }, 10000);
 
   try {
-    // ── FASE 1: carrega só jira_chamados (rápido ~415 docs) ──────────────────
+    // ── FASE 1: carrega jira_chamados (atual ou histórico) ──────────────────
+    const today = new Date().toISOString().slice(0, 10);
+    const isHistorical = state.selectedDate && state.selectedDate !== today;
+    const jiraCol = isHistorical
+      ? `jira_chamados_hist/${state.selectedDate}`
+      : 'jira_chamados';
+
+    // Atualiza badge HISTÓRICO no header
+    const histBadge = document.getElementById('hist-badge');
+    if (histBadge) histBadge.style.display = isHistorical ? 'inline-block' : 'none';
+
     let jiraOk = false;
     try {
-      const jiraRes = await Promise.allSettled([fetchFirestore('jira_chamados')]);
+      const jiraRes = await Promise.allSettled([fetchFirestore(jiraCol)]);
       const jiraData = jiraRes[0];
       if (jiraData.status === 'fulfilled') { state.jira = jiraData.value; jiraOk = true; }
-      else { console.error('[Fase1] Jira falhou:', jiraData.reason?.message || jiraData.reason); state.jira = []; }
+      else {
+        console.error('[Fase1] Jira falhou:', jiraData.reason?.message || jiraData.reason);
+        state.jira = [];
+      }
     } catch(e) {
       console.error('[Fase1] Erro inesperado:', e);
       state.jira = [];
