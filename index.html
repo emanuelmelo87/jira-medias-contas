@@ -553,7 +553,7 @@
     <button class="tab-btn" onclick="switchTab(1)">🔧 Implantações</button>
     <button class="tab-btn" onclick="switchTab(2)">⚠️ Risco de Churn</button>
     <button class="tab-btn" onclick="switchTab(3)">⭐ NPS</button>
-    <button class="tab-btn" onclick="switchTab(4)">🏛️ eSfinge</button>
+    <button class="tab-btn" onclick="switchTab(4)"><img src="https://virtual.tce.sc.gov.br/mf-auth/assets/images/logo-dark.png" alt="eSfinge" style="height:14px;vertical-align:middle;margin-right:5px" onerror="this.outerHTML='🏛️'"> eSfinge</button>
     <button class="tab-btn" onclick="switchTab(5)">👥 Colaboradores</button>
   </div>
 
@@ -652,20 +652,11 @@
       </div>
       <div class="view-subtitle">Certidões Negativas de Débito e Status de Envio • Fonte: TCE-SC Virtual (e-Sfinge SC)</div>
 
-      <!-- Filtro de Município CND -->
-      <div style="margin:8px 0 4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <label style="font-size:.78rem;font-weight:600;color:var(--text-muted)">Município:</label>
-        <input id="cnd-mun-filter" type="text" placeholder="Buscar município…" oninput="renderCND()"
-          style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:.83rem;width:220px;background:#fff;color:var(--text)">
-        <button onclick="document.getElementById('cnd-mun-filter').value='';renderCND()"
-          style="padding:5px 10px;background:none;border:1px solid var(--border);border-radius:6px;font-size:.78rem;cursor:pointer;color:var(--text-muted)">✕ Limpar</button>
-      </div>
-
       <!-- Sub-abas: Estadual / Federal / Status de Envio -->
       <div style="display:flex;gap:0;margin:12px 0 0;border-bottom:2px solid #E2E8F0;flex-wrap:wrap">
         <button id="cnd-sub-estadual" class="cnd-sub-btn cnd-sub-active" onclick="switchCNDSubTab('estadual')"
           style="padding:9px 18px;background:none;border:none;border-bottom:3px solid var(--accent);font-weight:700;font-size:.88rem;color:var(--accent);cursor:pointer;margin-bottom:-2px;transition:color .2s,border-color .2s">
-          🏛️ Estadual (SC)
+          📄 Certidão
         </button>
         <button id="cnd-sub-federal" class="cnd-sub-btn" onclick="switchCNDSubTab('federal')"
           style="display:none;padding:9px 18px;background:none;border:none;border-bottom:3px solid transparent;font-weight:700;font-size:.88rem;color:var(--text-muted);cursor:pointer;margin-bottom:-2px;transition:color .2s,border-color .2s">
@@ -679,6 +670,14 @@
 
       <!-- Estadual: 3 donuts (certidões quadrimestrais) + tabela -->
       <div id="cnd-pane-estadual">
+        <!-- Filtro de Município -->
+        <div style="margin:14px 0 8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <label style="font-size:.78rem;font-weight:600;color:var(--text-muted)">Filtrar município:</label>
+          <input id="cnd-mun-filter" type="text" placeholder="Buscar município…" oninput="renderCND()"
+            style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:.83rem;width:220px;background:#fff;color:var(--text)">
+          <button onclick="document.getElementById('cnd-mun-filter').value='';renderCND()"
+            style="padding:5px 10px;background:none;border:1px solid var(--border);border-radius:6px;font-size:.78rem;cursor:pointer;color:var(--text-muted)">✕ Limpar</button>
+        </div>
         <div id="cnd-estadual-status" style="margin-bottom:12px"></div>
         <div id="cnd-estadual-donuts" style="display:flex;justify-content:center;gap:20px;align-items:start"></div>
         <div id="cnd-estadual-table" style="margin-top:24px"></div>
@@ -783,7 +782,7 @@
   Portfólio Médias Contas — Dashboard Executivo &nbsp;|&nbsp; Betha Sistemas &nbsp;|&nbsp;
   Fontes: Jira (Betha) · Firebase Firestore · CND &nbsp;|&nbsp;
   Gerado em: <span id="footer-date">—</span> &nbsp;|&nbsp;
-  <span style="font-size:.78rem;font-weight:600;opacity:.7">🚀 24/06/2026 16:28</span>
+  <span style="font-size:.78rem;font-weight:600;opacity:.7">🚀 24/06/2026 16:37</span>
 </footer>
 
 <div id="loading-overlay">
