@@ -205,6 +205,28 @@
     }
     .view { display: none; }
     .view.active { display: block; }
+    .view-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 2px;
+    }
+    .btn-refresh-tab {
+      padding: 5px 14px;
+      background: rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 8px;
+      color: var(--text-muted);
+      font-size: .78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, color .15s;
+      white-space: nowrap;
+    }
+    .btn-refresh-tab:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-refresh-tab:disabled { opacity: .4; cursor: default; }
     .view-title {
       font-size: 1rem;
       font-weight: 700;
@@ -453,7 +475,7 @@
         </g>
       </svg>
       <span style="width:1px;height:28px;background:rgba(255,255,255,0.35);display:inline-block;margin:0 14px;vertical-align:middle;"></span><h1>Portfólio Médias Contas <span>Dashboard Executivo</span><span class="hist-badge" id="hist-badge">HISTÓRICO</span></h1>
-      <span id="deploy-badge" style="font-size:.68rem;font-weight:600;color:rgba(255,255,255,.55);background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:2px 9px;white-space:nowrap;margin-left:2px;vertical-align:middle">🚀 24/06/2026 10:57</span>
+      <span id="deploy-badge" style="font-size:.68rem;font-weight:600;color:rgba(255,255,255,.55);background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:2px 9px;white-space:nowrap;margin-left:2px;vertical-align:middle">🚀 24/06/2026 11:37</span>
     </div>
     <div class="header-meta">
       <div class="sync-info">
@@ -541,35 +563,50 @@
 
     <!-- View: Chamados de Suporte (default) -->
     <div class="view active" id="view-suporte">
-      <div class="view-title">Chamados de Suporte</div>
+      <div class="view-header">
+        <div class="view-title">Chamados de Suporte</div>
+        <button class="btn-refresh-tab" id="refresh-tab-btn-6" onclick="refreshTabData(6)">🔄 Atualizar</button>
+      </div>
       <div class="view-subtitle">Todos os chamados abertos do portfólio — monitoramento de SLO de Atendimento • Fonte: Jira</div>
       <div id="suporte-content" style="margin-top:8px"></div>
     </div>
 
     <!-- View: Chamados de Serviço (pos 1) -->
     <div class="view" id="view-0">
-      <div class="view-title">Chamados de Serviço</div>
+      <div class="view-header">
+        <div class="view-title">Chamados de Serviço</div>
+        <button class="btn-refresh-tab" id="refresh-tab-btn-0" onclick="refreshTabData(0)">🔄 Atualizar</button>
+      </div>
       <div class="view-subtitle">Monitoramento de SLO de Atendimento • Fonte: Jira</div>
       <div id="servico-content" style="margin-top:8px"></div>
     </div>
 
     <!-- View: Implantações (pos 2) -->
     <div class="view" id="view-7">
-      <div class="view-title">Implantações Pendentes e Em Andamento</div>
+      <div class="view-header">
+        <div class="view-title">Implantações Pendentes e Em Andamento</div>
+        <button class="btn-refresh-tab" id="refresh-tab-btn-1" onclick="refreshTabData(1)">🔄 Atualizar</button>
+      </div>
       <div class="view-subtitle">Issues de implantação por município e vertical • Fonte: Jira</div>
       <div id="impl-content" style="margin-top:8px"></div>
     </div>
 
     <!-- View: Risco de Churn (pos 2) -->
     <div class="view" id="view-3">
-      <div class="view-title">Clientes com Risco de Churn</div>
+      <div class="view-header">
+        <div class="view-title">Clientes com Risco de Churn</div>
+        <button class="btn-refresh-tab" id="refresh-tab-btn-2" onclick="refreshTabData(2)">🔄 Atualizar</button>
+      </div>
       <div class="view-subtitle">Municípios com risco de churn (cancelamento de contrato) • Fonte: Google Sheets</div>
       <div id="risk-container" style="margin-top:16px"></div>
     </div>
 
     <!-- View: NPS (Geral + Por Cliente) (pos 3) -->
     <div class="view" id="view-4">
-      <div class="view-title">NPS do Portfólio</div>
+      <div class="view-header">
+        <div class="view-title">NPS do Portfólio</div>
+        <button class="btn-refresh-tab" id="refresh-tab-btn-3" onclick="refreshTabData(3)">🔄 Atualizar</button>
+      </div>
       <div class="view-subtitle">Net Promoter Score consolidado • Fonte: Google Sheets</div>
       <div class="nps-panel" id="nps-panel" style="margin-top:16px">
         <div class="nps-score-box">
@@ -607,7 +644,10 @@
 
     <!-- View: CND (pos 4) -->
     <div class="view" id="view-2">
-      <div class="view-title">Situação CND do Portfólio</div>
+      <div class="view-header">
+        <div class="view-title">Situação CND do Portfólio</div>
+        <button class="btn-refresh-tab" id="refresh-tab-btn-4" onclick="refreshTabData(4)">🔄 Atualizar</button>
+      </div>
       <div class="view-subtitle">Certidões Negativas de Débito • Fonte: TCE-SC Virtual (e-Sfinge SC)</div>
 
       <!-- Sub-abas Estadual / Federal (Federal oculto aguardando revisão) -->
@@ -639,7 +679,10 @@
 
     <!-- View: Colaboradores (pos 5) -->
     <div class="view" id="view-6">
-      <div class="view-title">Colaboradores</div>
+      <div class="view-header">
+        <div class="view-title">Colaboradores</div>
+        <button class="btn-refresh-tab" id="refresh-tab-btn-5" onclick="refreshTabData(5)">🔄 Atualizar</button>
+      </div>
       <div class="view-subtitle">Distribuição e listagem da equipe</div>
       <div id="colab-container" style="margin-top:8px"></div>
     </div>
@@ -692,7 +735,7 @@
 </main>
 
 <footer>
-  Portfólio Médias Contas — Dashboard Executivo &nbsp;|&nbsp; Betha Sistemas &nbsp;|&nbsp; Deploy: 24/06/2026 10:57 &nbsp;|&nbsp;
+  Portfólio Médias Contas — Dashboard Executivo &nbsp;|&nbsp; Betha Sistemas &nbsp;|&nbsp; Deploy: 24/06/2026 11:37 &nbsp;|&nbsp;
   Fontes: Jira (Betha) · Firebase Firestore · CND &nbsp;|&nbsp;
   Gerado em: <span id="footer-date">—</span>
 </footer>
@@ -1376,6 +1419,54 @@ function switchTab(idx) {
   document.querySelectorAll('.tab-btn')[([6,0,1,2,3,4,5].indexOf(idx))]?.classList.add('active');
   activeTab = idx;
   renderView(idx);
+}
+
+
+// ── Refresh individual por aba ────────────────────────────────────────────
+async function refreshTabData(tabIdx) {
+  const btn = document.getElementById('refresh-tab-btn-' + tabIdx);
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Atualizando…'; }
+  try {
+    switch(tabIdx) {
+      case 6: // Chamados de Suporte
+        [state.suporte, state.suporteIssues] = await Promise.all([
+          fetchSheet('Jira_Chamados_Suporte').catch(() => []),
+          fetchSheet('Jira_Chamados_Suporte_Issues').catch(() => []),
+        ]);
+        break;
+      case 0: // Chamados de Serviço
+        state.jira = await fetchFirestore('jira_chamados').catch(() => []);
+        break;
+      case 1: // Implantações
+        [state.implantacoes, state.implantacoesIssues] = await Promise.all([
+          fetchSheet('Jira_Implantacoes').catch(() => []),
+          fetchSheet('Jira_Implantacoes_Issues').catch(() => []),
+        ]);
+        break;
+      case 2: // Risco de Churn
+        state.risco = await fetchSheet('Risco de Exclusão').catch(() => []);
+        break;
+      case 3: // NPS
+        state.nps = await fetchSheet('NPS_Calculado').catch(() => []);
+        break;
+      case 4: // CND
+        [state.cndEstadual, state.cndFederal] = await Promise.all([
+          fetchCNDEstadual().catch(() => []),
+          fetchCNDFederal().catch(() => []),
+        ]);
+        state.cnd = state.cndEstadual;
+        break;
+      case 5: // Colaboradores
+        state.colaboradores = await fetchFirestore('colaboradores').catch(() => []);
+        break;
+    }
+    try { updateKPIs(); } catch(_) {}
+    renderView(tabIdx);
+  } catch(e) {
+    console.error('[refreshTabData] tab', tabIdx, e);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 Atualizar'; }
+  }
 }
 
 function renderActiveView() { renderView(activeTab); }
