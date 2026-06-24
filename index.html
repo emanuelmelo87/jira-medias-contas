@@ -475,7 +475,7 @@
         </g>
       </svg>
       <span style="width:1px;height:28px;background:rgba(255,255,255,0.35);display:inline-block;margin:0 14px;vertical-align:middle;"></span><h1>Portfólio Médias Contas <span>Dashboard Executivo</span><span class="hist-badge" id="hist-badge">HISTÓRICO</span></h1>
-      <span id="deploy-badge" style="font-size:.68rem;font-weight:600;color:rgba(255,255,255,.55);background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:2px 9px;white-space:nowrap;margin-left:2px;vertical-align:middle">🚀 24/06/2026 14:58</span>
+      <span id="deploy-badge" style="font-size:.68rem;font-weight:600;color:rgba(255,255,255,.55);background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:2px 9px;white-space:nowrap;margin-left:2px;vertical-align:middle">🚀 24/06/2026 15:02</span>
     </div>
     <div class="header-meta">
       <div class="sync-info">
@@ -735,7 +735,7 @@
 </main>
 
 <footer>
-  Portfólio Médias Contas — Dashboard Executivo &nbsp;|&nbsp; Betha Sistemas &nbsp;|&nbsp; Deploy: 24/06/2026 14:58 &nbsp;|&nbsp;
+  Portfólio Médias Contas — Dashboard Executivo &nbsp;|&nbsp; Betha Sistemas &nbsp;|&nbsp; Deploy: 24/06/2026 15:02 &nbsp;|&nbsp;
   Fontes: Jira (Betha) · Firebase Firestore · CND &nbsp;|&nbsp;
   Gerado em: <span id="footer-date">—</span>
 </footer>
@@ -825,19 +825,42 @@ function _fsDoc(doc) {
 }
 
 // Busca todos os docs de uma coleção via REST (sem SDK)
-// Throttle global: no máximo 1 req Firestore a cada 250ms
+// Cache local (localStorage) para leituras Firestore — TTL 30 min
+// Evita esgotar a cota diária de 50k leituras do plano gratuito
+const _FS_CACHE_TTL = 30 * 60 * 1000; // 30 minutos em ms
+
+function _fsCacheGet(col) {
+  try {
+    const raw = localStorage.getItem('_fs_' + col);
+    if (!raw) return null;
+    const { ts, docs } = JSON.parse(raw);
+    if (Date.now() - ts > _FS_CACHE_TTL) { localStorage.removeItem('_fs_' + col); return null; }
+    console.log('[Firestore cache] HIT', col, docs.length, 'docs');
+    return docs;
+  } catch(_) { return null; }
+}
+
+function _fsCacheSet(col, docs) {
+  try { localStorage.setItem('_fs_' + col, JSON.stringify({ ts: Date.now(), docs })); } catch(_) {}
+}
+
+function _fsCacheClear(col) {
+  try { localStorage.removeItem('_fs_' + col); } catch(_) {}
+}
+
+// Throttle global: no máximo 1 req Firestore a cada 300ms
 // + Retry com backoff exponencial em 429/503
 let _fsQueue = Promise.resolve();
 function _fsThrottle(fn) {
-  _fsQueue = _fsQueue.then(() => new Promise(r => setTimeout(r, 250))).then(fn);
+  _fsQueue = _fsQueue.then(() => new Promise(r => setTimeout(r, 300))).then(fn);
   return _fsQueue;
 }
 
 async function _fetchFSPage(url, attempt = 0) {
   const resp = await fetch(url);
   if (resp.status === 429 || resp.status === 503) {
-    if (attempt >= 5) throw new Error('Firestore HTTP ' + resp.status + ' (após retries)');
-    const delay = (2 ** attempt) * 1000 + Math.random() * 500; // 1s, 2s, 4s, 8s, 16s
+    if (attempt >= 4) throw new Error('Firestore HTTP ' + resp.status + ' (após retries)');
+    const delay = (2 ** attempt) * 1500 + Math.random() * 500;
     console.warn('[Firestore] 429 — retry', attempt + 1, 'em', Math.round(delay) + 'ms');
     await new Promise(r => setTimeout(r, delay));
     return _fetchFSPage(url, attempt + 1);
@@ -846,7 +869,11 @@ async function _fetchFSPage(url, attempt = 0) {
   return resp.json();
 }
 
-async function fetchFirestore(col) {
+async function fetchFirestore(col, forceRefresh = false) {
+  if (!forceRefresh) {
+    const cached = _fsCacheGet(col);
+    if (cached) return cached;
+  }
   const docs = [];
   let pageToken = null;
   do {
@@ -855,6 +882,7 @@ async function fetchFirestore(col) {
     if (data.documents) data.documents.forEach(d => docs.push(_fsDoc(d)));
     pageToken = data.nextPageToken || null;
   } while (pageToken);
+  _fsCacheSet(col, docs);
   return docs;
 }
 
@@ -1169,7 +1197,12 @@ function refreshToday() {
   loadAllData();
 }
 
-async function loadAllData() {
+async function loadAllData(forceRefresh = false) {
+  // Se forceRefresh, limpa cache do Firestore para buscar dados frescos
+  if (forceRefresh) {
+    ['jira_chamados','colaboradores'].forEach(_fsCacheClear);
+    console.log('[loadAllData] Cache Firestore limpo — buscando dados frescos');
+  }
   const btn = document.getElementById('btn-refresh');
   showLoading(true);
   if (btn) btn.disabled = true;
@@ -1486,7 +1519,8 @@ async function refreshTabData(tabIdx) {
         state.cnd = state.cndEstadual;
         break;
       case 5: // Colaboradores
-        state.colaboradores = await fetchFirestore('colaboradores').catch(() => []);
+        _fsCacheClear('colaboradores');
+        state.colaboradores = await fetchFirestore('colaboradores', true).catch(() => []);
         break;
     }
     try { updateKPIs(); } catch(_) {}
