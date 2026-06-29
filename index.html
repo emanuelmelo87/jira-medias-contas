@@ -514,7 +514,7 @@
     <button class="tab-btn" onclick="switchTab(1)">🔧 Implantações</button>
     <button class="tab-btn" onclick="switchTab(2)">⚠️ Risco de Churn</button>
     <button class="tab-btn" onclick="switchTab(3)">⭐ NPS</button>
-    <button class="tab-btn" onclick="switchTab(4)">🏛️ CND</button>
+    <button class="tab-btn" onclick="switchTab(4)">🏛️ TCE SC / eSfinge</button>
     <button class="tab-btn" onclick="switchTab(5)">👥 Colaboradores</button>
     <button class="tab-btn" id="tab-btn-admin" onclick="switchTab(7)">🗄️ Admin</button>
   </div>
@@ -590,20 +590,34 @@
 
     <!-- View: CND (pos 4) -->
     <div class="view" id="view-2">
-      <div class="view-title">Situação CND do Portfólio</div>
-      <div class="view-subtitle">Certidões Negativas de Débito • Fonte: TCE-SC Virtual (e-Sfinge SC)</div>
+      <div class="view-title">TCE SC / eSfinge</div>
+      <div class="view-subtitle">Certidões e Status de Envio de Obrigações • Fonte: TCE-SC / e-Sfinge SC</div>
 
-      <!-- Sub-abas Estadual / Federal (Federal oculto aguardando revisão) -->
-      <div style="display:flex;gap:8px;margin:12px 0 16px;border-bottom:2px solid #E2E8F0">
-        <button id="cnd-sub-estadual" class="cnd-sub-btn cnd-sub-active" onclick="switchCNDSubTab('estadual')"
-          style="padding:8px 18px;background:none;border:none;border-bottom:3px solid var(--accent);font-weight:700;font-size:.9rem;color:var(--accent);cursor:pointer;margin-bottom:-2px;transition:color .2s,border-color .2s">
-          🏛️ Estadual (SC)
+      <!-- Sub-abas nível 1: Certidão | Status de Envio -->
+      <div style="display:flex;gap:8px;margin:12px 0 0;border-bottom:2px solid #E2E8F0">
+        <button id="tce-tab-certidao" class="tce-tab-btn tce-tab-active" onclick="switchTCETab('certidao')"
+          style="padding:9px 20px;background:none;border:none;border-bottom:3px solid var(--accent);font-weight:700;font-size:.9rem;color:var(--accent);cursor:pointer;margin-bottom:-2px;transition:color .2s,border-color .2s">
+          📄 Certidão
         </button>
-        <button id="cnd-sub-federal" class="cnd-sub-btn" onclick="switchCNDSubTab('federal')"
-          style="display:none;padding:8px 18px;background:none;border:none;border-bottom:3px solid transparent;font-weight:700;font-size:.9rem;color:var(--text-muted);cursor:pointer;margin-bottom:-2px;transition:color .2s,border-color .2s">
-          🇧🇷 Federal
+        <button id="tce-tab-envio" class="tce-tab-btn" onclick="switchTCETab('envio')"
+          style="padding:9px 20px;background:none;border:none;border-bottom:3px solid transparent;font-weight:700;font-size:.9rem;color:var(--text-muted);cursor:pointer;margin-bottom:-2px;transition:color .2s,border-color .2s">
+          📊 Status de Envio
         </button>
       </div>
+
+      <!-- Painel: Certidão -->
+      <div id="tce-pane-certidao" style="padding-top:16px">
+        <!-- Sub-abas Estadual / Federal -->
+        <div style="display:flex;gap:8px;margin:0 0 16px;border-bottom:2px solid #E2E8F0">
+          <button id="cnd-sub-estadual" class="cnd-sub-btn cnd-sub-active" onclick="switchCNDSubTab('estadual')"
+            style="padding:8px 18px;background:none;border:none;border-bottom:3px solid var(--accent);font-weight:700;font-size:.9rem;color:var(--accent);cursor:pointer;margin-bottom:-2px;transition:color .2s,border-color .2s">
+            🏛️ Estadual (SC)
+          </button>
+          <button id="cnd-sub-federal" class="cnd-sub-btn" onclick="switchCNDSubTab('federal')"
+            style="display:none;padding:8px 18px;background:none;border:none;border-bottom:3px solid transparent;font-weight:700;font-size:.9rem;color:var(--text-muted);cursor:pointer;margin-bottom:-2px;transition:color .2s,border-color .2s">
+            🇧🇷 Federal
+          </button>
+        </div>
 
       <!-- Estadual: 3 donuts (certidões quadrimestrais) + tabela -->
       <div id="cnd-pane-estadual">
@@ -618,6 +632,51 @@
         <div id="cnd-federal-donuts" style="display:flex;justify-content:center;gap:20px;align-items:start"></div>
         <div id="cnd-federal-table" style="margin-top:24px"></div>
       </div>
+      </div><!-- /tce-pane-certidao -->
+
+      <!-- Painel: Status de Envio -->
+      <div id="tce-pane-envio" style="display:none;padding-top:16px">
+        <!-- Filtros -->
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
+          <div>
+            <label style="font-size:.78rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Município</label>
+            <select id="envio-mun" onchange="renderEnvioView()" style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:.85rem;background:#fff;color:var(--text);min-width:200px">
+              <option value="">Selecione…</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:.78rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Ano</label>
+            <select id="envio-ano" onchange="renderEnvioView()" style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:.85rem;background:#fff;color:var(--text)"></select>
+          </div>
+          <span id="envio-info" style="font-size:.78rem;color:var(--text-muted);align-self:center"></span>
+        </div>
+        <!-- Legenda -->
+        <div style="display:flex;gap:16px;font-size:.75rem;color:var(--text-muted);margin-bottom:12px">
+          <span>✅ Enviou</span>
+          <span style="color:var(--red)">❌ Não enviou</span>
+          <span>— Sem dado</span>
+        </div>
+        <!-- Tabela: módulos (linhas) × meses (colunas) -->
+        <div id="envio-wrap" style="overflow-x:auto;border-radius:8px;border:1px solid var(--border)">
+          <table id="envio-table" style="width:100%;border-collapse:collapse;font-size:.84rem">
+            <thead id="envio-thead"></thead>
+            <tbody id="envio-tbody"></tbody>
+          </table>
+        </div>
+        <div id="envio-empty" style="display:none;text-align:center;padding:48px;color:var(--text-muted)">
+          <div style="font-size:2rem;margin-bottom:8px">📭</div>
+          <div>Nenhum dado encontrado para este município e ano.</div>
+          <div style="font-size:.78rem;margin-top:8px">Execute a extensão eSfinge Updater para importar dados.</div>
+        </div>
+        <div id="envio-loading" style="display:none;text-align:center;padding:48px;color:var(--text-muted)">
+          Carregando dados…
+        </div>
+        <div id="envio-select-hint" style="text-align:center;padding:48px;color:var(--text-muted)">
+          <div style="font-size:2rem;margin-bottom:8px">🏙️</div>
+          <div>Selecione um município para ver o status de envio mensal.</div>
+        </div>
+      </div><!-- /tce-pane-envio -->
+
     </div>
 
     <!-- View: Colaboradores (pos 5) -->
@@ -3598,6 +3657,173 @@ function adminApplyFilters() {
     }).join('') +
     '</tr>'
   ).join('');
+}
+
+// ── TCE SC / eSfinge — controle de sub-abas nível 1 ─────────────────────
+function switchTCETab(tab) {
+  const certBtn   = document.getElementById('tce-tab-certidao');
+  const envioBtn  = document.getElementById('tce-tab-envio');
+  const certPane  = document.getElementById('tce-pane-certidao');
+  const envioPane = document.getElementById('tce-pane-envio');
+  if (!certBtn) return;
+
+  const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#4F46E5';
+  const mutedColor  = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#6B7280';
+
+  if (tab === 'certidao') {
+    certPane.style.display  = 'block';
+    envioPane.style.display = 'none';
+    certBtn.style.borderBottomColor  = 'var(--accent)';
+    certBtn.style.color              = 'var(--accent)';
+    envioBtn.style.borderBottomColor = 'transparent';
+    envioBtn.style.color             = 'var(--text-muted)';
+  } else {
+    certPane.style.display  = 'none';
+    envioPane.style.display = 'block';
+    certBtn.style.borderBottomColor  = 'transparent';
+    certBtn.style.color              = 'var(--text-muted)';
+    envioBtn.style.borderBottomColor = 'var(--accent)';
+    envioBtn.style.color             = 'var(--accent)';
+    initEnvioPanel();
+  }
+}
+
+// ── Status de Envio — painel município × meses ──────────────────────────
+const _ENVIO = { docs: [], loaded: false, loading: false };
+const MESES_LABEL = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+async function initEnvioPanel() {
+  // Preencher ano
+  const anoSel = document.getElementById('envio-ano');
+  if (!anoSel.options.length) {
+    const anoAtual = new Date().getFullYear();
+    for (let y = anoAtual; y >= anoAtual - 3; y--) anoSel.add(new Option(y, y));
+    anoSel.value = anoAtual;
+  }
+
+  // Carregar docs se ainda não fez
+  if (!_ENVIO.loaded && !_ENVIO.loading) {
+    _ENVIO.loading = true;
+    document.getElementById('envio-select-hint').style.display = 'none';
+    document.getElementById('envio-loading').style.display = 'block';
+    try {
+      _ENVIO.docs = await fetchFirestore('status_envio');
+      _ENVIO.loaded = true;
+
+      // Preencher dropdown de municípios com todos únicos, ordenados
+      const munSel = document.getElementById('envio-mun');
+      const allMuns = [...new Set(_ENVIO.docs.map(d => d.municipio).filter(Boolean))].sort((a,b) => a.localeCompare(b,'pt-BR'));
+      allMuns.forEach(m => munSel.add(new Option(m, m)));
+
+      // Selecionar automaticamente o município do portfólio se houver apenas 1 conta carregada
+      // (ou deixar o usuário escolher)
+    } catch(e) {
+      document.getElementById('envio-loading').style.display = 'none';
+      document.getElementById('envio-empty').style.display = 'block';
+      document.getElementById('envio-empty').innerHTML =
+        '<div style="font-size:2rem;margin-bottom:8px">⚠️</div><div>Erro ao carregar dados: ' + e.message + '</div>';
+      _ENVIO.loading = false;
+      return;
+    }
+    _ENVIO.loading = false;
+  }
+
+  document.getElementById('envio-loading').style.display = 'none';
+  const munSel = document.getElementById('envio-mun');
+  if (!munSel.value) {
+    document.getElementById('envio-select-hint').style.display = 'block';
+    return;
+  }
+  renderEnvioView();
+}
+
+function renderEnvioView() {
+  if (!_ENVIO.loaded) return; // ainda carregando
+
+  const mun = (document.getElementById('envio-mun')?.value || '').trim();
+  const ano = parseInt(document.getElementById('envio-ano')?.value) || new Date().getFullYear();
+
+  document.getElementById('envio-select-hint').style.display = !mun ? 'block' : 'none';
+  if (!mun) return;
+
+  // Filtrar por município e ano
+  const docs = _ENVIO.docs.filter(d => d.municipio === mun && d.ano == ano);
+
+  // Módulos únicos (linhas) ordenados
+  const modulos = [...new Set(docs.map(d => d.modulo).filter(Boolean))].sort((a,b) => a.localeCompare(b,'pt-BR'));
+
+  document.getElementById('envio-info').textContent = modulos.length + ' módulos · ' + ano;
+
+  if (modulos.length === 0) {
+    document.getElementById('envio-wrap').style.display = 'none';
+    document.getElementById('envio-empty').style.display = 'block';
+    document.getElementById('envio-empty').innerHTML =
+      '<div style="font-size:2rem;margin-bottom:8px">📭</div>' +
+      '<div>Nenhum dado encontrado para <strong>' + mun + '</strong> em ' + ano + '.</div>' +
+      '<div style="font-size:.78rem;margin-top:8px">Execute a extensão eSfinge Updater para importar dados.</div>';
+    return;
+  }
+  document.getElementById('envio-wrap').style.display = 'block';
+  document.getElementById('envio-empty').style.display = 'none';
+
+  // Índice: mes → modulo → qtd_pacotes
+  const idx = {};
+  docs.forEach(d => {
+    if (!idx[d.mes]) idx[d.mes] = {};
+    idx[d.mes][d.modulo] = d.qtd_pacotes;
+  });
+
+  // Quais meses têm pelo menos 1 dado
+  const mesesComDado = [1,2,3,4,5,6,7,8,9,10,11,12].filter(m => idx[m]);
+  const meses = mesesComDado.length ? [1,2,3,4,5,6,7,8,9,10,11,12] : [];
+
+  // Cabeçalho: Módulo | Jan | Fev | … | Dez | Total
+  const TH = 'style="padding:9px 10px;background:#1C1A23;color:#fff;font-size:.78rem;font-weight:600;text-align:center;white-space:nowrap"';
+  const TH_LEFT = 'style="padding:9px 14px;background:#1C1A23;color:#fff;font-size:.78rem;font-weight:600;text-align:left;white-space:nowrap;min-width:200px"';
+  const thead = document.getElementById('envio-thead');
+  thead.innerHTML = '<tr>' +
+    '<th ' + TH_LEFT + '>Módulo</th>' +
+    meses.map(m => {
+      const hasData = !!idx[m];
+      const color   = hasData ? '#fff' : '#666';
+      return '<th ' + TH + ' style="padding:9px 10px;background:#1C1A23;color:' + color + ';font-size:.78rem;font-weight:600;text-align:center;white-space:nowrap">' +
+        MESES_LABEL[m-1] + '</th>';
+    }).join('') +
+    '<th ' + TH + '>Enviados</th>' +
+    '</tr>';
+
+  // Corpo: uma linha por módulo
+  const tbody = document.getElementById('envio-tbody');
+  tbody.innerHTML = modulos.map((mod, i) => {
+    const bg = i % 2 === 0 ? '#fff' : '#F9FAFB';
+    let enviados = 0;
+    let totalMeses = 0;
+    const cells = meses.map(m => {
+      if (!idx[m]) {
+        // mês sem nenhum dado — coluna "vazia"
+        return '<td style="text-align:center;padding:8px 4px;color:#ddd;font-size:.85rem;background:' + bg + '">—</td>';
+      }
+      totalMeses++;
+      const qtd = idx[m][mod];
+      if (qtd === undefined || qtd === null) {
+        return '<td style="text-align:center;padding:8px 4px;color:#bbb;font-size:.85rem;background:' + bg + '">—</td>';
+      }
+      if (qtd > 0) {
+        enviados++;
+        return '<td style="text-align:center;padding:8px 4px;font-size:.9rem;background:' + bg + '" title="' + qtd + ' pacote(s)">✅</td>';
+      }
+      return '<td style="text-align:center;padding:8px 4px;font-size:.9rem;background:' + bg + ';color:var(--red)">❌</td>';
+    }).join('');
+
+    const pct = totalMeses ? Math.round(enviados / totalMeses * 100) : 0;
+    const pctColor = pct === 100 ? 'var(--green)' : pct >= 50 ? '#f59e0b' : 'var(--red)';
+    return '<tr style="border-bottom:1px solid #E2E8F0">' +
+      '<td style="padding:8px 14px;font-size:.83rem;font-weight:500;background:' + bg + ';white-space:nowrap">' + mod + '</td>' +
+      cells +
+      '<td style="text-align:center;padding:8px 10px;font-weight:700;font-size:.8rem;color:' + pctColor + ';background:' + bg + '">' +
+        enviados + '/' + totalMeses + '</td>' +
+      '</tr>';
+  }).join('');
 }
 
 // ── eSfinge Status Envio — matriz municípios × módulos ────────────────
