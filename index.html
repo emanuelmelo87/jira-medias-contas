@@ -1101,7 +1101,7 @@ async function loadAllData() {
     fetchSheet('NPS_Calculado'),
     fetchCNDEstadual(),
     fetchCNDFederal(),
-    fetchSheet('Colaboradores'),
+    fetchFirestore('colaboradores'),  // Colaboradores do Firestore
     fetchSheet('Jira_Implantacoes'),
     fetchSheet('Jira_Implantacoes_Issues'),
     fetchFirestore('jira_chamados_issues'),
@@ -2889,108 +2889,168 @@ function renderNPSPorCliente() {
 // VIEW 7 — Colaboradores
 // ============================================================
 function renderColaboradores() {
-  destroyChart('chart-6');
-  destroyChart('chart-7');
+  ['chart-colab-cargo','chart-colab-area','chart-colab-equipe','chart-colab-gestor'].forEach(id => destroyChart(id));
   const container = document.getElementById('colab-container');
-
-  if (!state.colaboradores.length) {
-    unavailable(container, 'Dados de colaboradores indisponíveis. Verifique se a planilha está publicada.');
-    return;
-  }
-
-  const COLAB_COLORS = [
-    '#2B6CB0','#276749','#C05621','#805AD5','#0987A0',
-    '#C53030','#DD6B20','#B7791F','#2C7A7B','#553C9A',
-    '#2F855A','#9B2C2C','#2A4365','#744210','#1A365D',
-  ];
-  const ATEND_COLORS = [
-    '#0987A0','#C05621','#276749','#805AD5','#2B6CB0',
-    '#B7791F','#C53030','#2C7A7B','#DD6B20','#553C9A',
-  ];
-
-  // ── Agrupar por Vaga ──────────────────────────────────────
-  const vagaMap = {};
-  state.colaboradores.forEach(r => {
-    const v = (r.vaga || 'Sem vaga').trim();
-    vagaMap[v] = (vagaMap[v] || 0) + 1;
-  });
-  const vagaEntries = Object.entries(vagaMap).sort((a, b) => b[1] - a[1]);
-  const vagaLabels  = vagaEntries.map(e => e[0]);
-  const vagaCounts  = vagaEntries.map(e => e[1]);
-  const vagaColors  = vagaLabels.map((_, i) => COLAB_COLORS[i % COLAB_COLORS.length]);
-  const colorByVaga = {};
-  vagaLabels.forEach((v, i) => { colorByVaga[v] = COLAB_COLORS[i % COLAB_COLORS.length]; });
-
-  // ── Agrupar por Área de Atendimento ───────────────────────
-  const atendMap = {};
-  state.colaboradores.forEach(r => {
-    const a = (r.area_de_atendimento || 'Não informado').trim();
-    atendMap[a] = (atendMap[a] || 0) + 1;
-  });
-  const atendEntries = Object.entries(atendMap).sort((a, b) => b[1] - a[1]);
-  const atendLabels  = atendEntries.map(e => e[0]);
-  const atendCounts  = atendEntries.map(e => e[1]);
-  const atendColors  = atendLabels.map((_, i) => ATEND_COLORS[i % ATEND_COLORS.length]);
-
-  // ── Linhas da tabela ──────────────────────────────────────
-  const tableRows = state.colaboradores.map(r => {
-    const vaga = (r.vaga || '').trim();
-    const cor  = colorByVaga[vaga] || '#718096';
-    return `<tr>
-      <td>${r.analista || '—'}</td>
-      <td><span class="colab-vaga-badge" style="background:${cor}20;color:${cor};border:1px solid ${cor}40">${vaga || '—'}</span></td>
-      <td>${r.area_de_atuacao || '—'}</td>
-      <td>${r.regiao || '—'}</td>
-      <td>${r.area_de_atendimento || '—'}</td>
-    </tr>`;
-  }).join('');
-
-  container.innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">
-      <div>
-        <div class="risk-col-title">Distribuição por Vaga</div>
-        <div style="height:300px"><canvas id="chart-6"></canvas></div>
-      </div>
-      <div>
-        <div class="risk-col-title">Distribuição por Área de Atendimento</div>
-        <div style="height:300px"><canvas id="chart-7"></canvas></div>
-      </div>
-    </div>
-    <div>
-      <div class="risk-col-title">Equipe — ${state.colaboradores.length} colaboradores</div>
-      <table class="colab-table">
-        <thead><tr>
-          <th>Analista</th><th>Vaga</th><th>Área de Atuação</th><th>Região</th><th>Área de Atendimento</th>
-        </tr></thead>
-        <tbody>${tableRows}</tbody>
-      </table>
-    </div>`;
-
-  const pieOptions = (label) => ({
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 8 } },
-      tooltip: { callbacks: {
-        label: ctx => ` ${ctx.label}: ${ctx.parsed} colaborador${ctx.parsed !== 1 ? 'es' : ''}`
-      }}
+  try {
+    if (!state.colaboradores || !state.colaboradores.length) {
+      container.innerHTML = '<div class="unavailable"><div class="unavailable-icon">👥</div>' +
+        '<div class="unavailable-text">Nenhum colaborador cadastrado</div>' +
+        '<button onclick="adminOpen()" style="margin-top:14px;padding:8px 20px;background:#0761FF;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.85rem;font-weight:600">+ Abrir Admin para cadastrar</button>' +
+        '</div>';
+      return;
     }
-  });
+    const colabs = state.colaboradores;
+    if (!window._colabFilter) window._colabFilter = { cargo: null, area: null, equipe: null, gestor: null };
+    const f = window._colabFilter;
 
-  charts['chart-6'] = new Chart(document.getElementById('chart-6'), {
-    type: 'pie',
-    data: { labels: vagaLabels, datasets: [{ data: vagaCounts, backgroundColor: vagaColors, borderWidth: 2, borderColor: '#fff' }] },
-    options: pieOptions('vaga'),
-  });
+    const cargoMap = {}, areaMap = {}, equipeMap = {}, gestorMap = {};
+    colabs.forEach(c => {
+      const cargo  = String(c.cargo  || 'Não informado');
+      const area   = String(c.area_atendimento   || 'Não informado');
+      const equipe = String(c.equipe_atendimento || 'Não informado');
+      const gestor = String(c.gestor || 'Não informado');
+      cargoMap[cargo]   = (cargoMap[cargo]   || 0) + 1;
+      areaMap[area]     = (areaMap[area]     || 0) + 1;
+      equipeMap[equipe] = (equipeMap[equipe] || 0) + 1;
+      gestorMap[gestor] = (gestorMap[gestor] || 0) + 1;
+    });
 
-  charts['chart-7'] = new Chart(document.getElementById('chart-7'), {
-    type: 'pie',
-    data: { labels: atendLabels, datasets: [{ data: atendCounts, backgroundColor: atendColors, borderWidth: 2, borderColor: '#fff' }] },
-    options: pieOptions('atendimento'),
+    const filtered = colabs.filter(c =>
+      (!f.cargo  || String(c.cargo              || 'Não informado') === f.cargo)  &&
+      (!f.area   || String(c.area_atendimento   || 'Não informado') === f.area)   &&
+      (!f.equipe || String(c.equipe_atendimento || 'Não informado') === f.equipe) &&
+      (!f.gestor || String(c.gestor || 'Não informado') === f.gestor)
+    ).sort((a,b) => String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR'));
+
+    const PIE_COLORS_C = ['#0761FF','#38A169','#D69E2E','#805AD5','#E53E3E','#DD6B20','#0987A0','#C53030','#2B6CB0','#9F7AEA','#48BB78','#718096'];
+
+    const chips = [
+      f.cargo  ? `<span class="_cchip" onclick="window._colabFilter.cargo=null;renderColaboradores()">${f.cargo} &#x2715;</span>`  : '',
+      f.area   ? `<span class="_cchip" onclick="window._colabFilter.area=null;renderColaboradores()">${f.area} &#x2715;</span>`    : '',
+      f.equipe ? `<span class="_cchip" onclick="window._colabFilter.equipe=null;renderColaboradores()">${f.equipe} &#x2715;</span>`: '',
+      f.gestor ? `<span class="_cchip" onclick="window._colabFilter.gestor=null;renderColaboradores()">${f.gestor} &#x2715;</span>`: '',
+    ].filter(Boolean).join('');
+
+    const tableRows = filtered.map((c,i) => {
+      const em = String(c.email||'');
+      const emEsc = em.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+      const mailUrl = em ? 'https://mail.google.com/mail/?view=cm&to=' + encodeURIComponent(em) : '';
+      const wa  = String(c.whatsapp||'').replace(/\D/g,'');
+      const wap = String(c.whatsapp_prof||'').replace(/\D/g,'');
+      const waUrl  = wa  ? 'https://wa.me/' + (wa.startsWith('55')  ? wa  : '55' + wa)  : '';
+      const wapUrl = wap ? 'https://wa.me/' + (wap.startsWith('55') ? wap : '55' + wap) : '';
+      const bg = i%2===0 ? '#F6F7FB' : '#FFFFFF';
+      const btns = [];
+      if (em)     btns.push('<a href="' + mailUrl + '" target="_blank" title="E-mail: ' + emEsc + '" style="display:inline-flex;align-items:center;background:#EBF4FF;border-radius:6px;padding:4px 8px;text-decoration:none;font-size:.85rem;margin-right:3px">✉️</a>');
+      if (em)     btns.push('<button onclick="_openGoogleChat(\'' + emEsc + '\')" style="background:#E6F4EA;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:.85rem;margin-right:3px">💬</button>');
+      if (waUrl)  btns.push('<a href="' + waUrl  + '" target="_blank" style="display:inline-flex;align-items:center;background:#DCFCE7;border-radius:6px;padding:4px 8px;text-decoration:none;font-size:.85rem;color:#166534;font-weight:600;margin-right:3px">📱 Pessoal</a>');
+      if (wapUrl) btns.push('<a href="' + wapUrl + '" target="_blank" style="display:inline-flex;align-items:center;background:#FEF9C3;border-radius:6px;padding:4px 8px;text-decoration:none;font-size:.85rem;color:#854D0E;font-weight:600">📱 Prof.</a>');
+      const contato = btns.length ? btns.join('') : '—';
+      return `<tr style="background:${bg};border-bottom:1px solid #E0E5F5">
+        <td style="padding:9px 14px;font-weight:600">${String(c.nome||'—')}</td>
+        <td style="padding:9px 14px"><span style="background:#EBF4FF;color:#2B6CB0;padding:2px 8px;border-radius:12px;font-size:.76rem;white-space:nowrap">${String(c.cargo||'—')}</span></td>
+        <td style="padding:9px 14px;color:#6B7280">${String(c.area_atuacao||'—')}</td>
+        <td style="padding:9px 14px">${String(c.equipe_atendimento||'—')}</td>
+        <td style="padding:9px 14px">${String(c.area_atendimento||'—')}</td>
+        <td style="padding:9px 14px;color:#6B7280">${String(c.gestor||'—')}</td>
+        <td style="padding:9px 14px;white-space:nowrap">
+          ${wa  ? '<div style="font-size:.78rem;color:#166534">📱 ' + wa  + '</div>' : ''}
+          ${wap ? '<div style="font-size:.78rem;color:#854D0E">📱 ' + wap + ' <span style=\\"font-size:.7rem;background:#FEF9C3;padding:1px 5px;border-radius:8px\\">Prof</span></div>' : ''}
+          ${!wa && !wap ? '—' : ''}
+        </td>
+        <td style="padding:9px 14px;text-align:center;white-space:nowrap">${contato}</td>
+      </tr>`;
+    }).join('');
+
+    const chipsHtml = chips
+      ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+          <span style="font-size:.8rem;color:#6B7280">Filtros:</span>${chips}
+          <span onclick="window._colabFilter={cargo:null,area:null,equipe:null,gestor:null};renderColaboradores()" style="font-size:.78rem;color:#6B7280;cursor:pointer;text-decoration:underline;margin-left:4px">Limpar tudo</span>
+        </div>` : '';
+
+    container.innerHTML =
+      `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px;margin-bottom:22px">
+        <div style="background:#FFFFFF;border:1px solid #E0E5F5;border-radius:10px;padding:16px">
+          <div style="font-size:.75rem;font-weight:700;color:#6B7280;margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em">Por Cargo</div>
+          <div style="position:relative;height:220px"><canvas id="chart-colab-cargo"></canvas></div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #E0E5F5;border-radius:10px;padding:16px">
+          <div style="font-size:.75rem;font-weight:700;color:#6B7280;margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em">Por Área de Atendimento</div>
+          <div style="position:relative;height:220px"><canvas id="chart-colab-area"></canvas></div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #E0E5F5;border-radius:10px;padding:16px">
+          <div style="font-size:.75rem;font-weight:700;color:#6B7280;margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em">Por Equipe</div>
+          <div style="position:relative;height:220px"><canvas id="chart-colab-equipe"></canvas></div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #E0E5F5;border-radius:10px;padding:16px">
+          <div style="font-size:.75rem;font-weight:700;color:#6B7280;margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em">Por Gestor</div>
+          <div style="position:relative;height:220px"><canvas id="chart-colab-gestor"></canvas></div>
+        </div>
+      </div>
+      ${chipsHtml}
+      <div style="font-size:.85rem;color:#6B7280;margin-bottom:10px">
+        Equipe — <strong>${filtered.length}</strong> colaborador${filtered.length !== 1 ? 'es' : ''}${filtered.length !== colabs.length ? ' de ' + colabs.length : ''}
+      </div>
+      <div style="overflow-x:auto;border:1px solid #E0E5F5;border-radius:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:.84rem">
+          <thead>
+            <tr style="background:#0761FF;color:#fff">
+              <th style="padding:10px 14px;text-align:left;white-space:nowrap">Nome</th>
+              <th style="padding:10px 14px;text-align:left;white-space:nowrap">Cargo</th>
+              <th style="padding:10px 14px;text-align:left;white-space:nowrap">Área de Atuação</th>
+              <th style="padding:10px 14px;text-align:left;white-space:nowrap">Equipe</th>
+              <th style="padding:10px 14px;text-align:left;white-space:nowrap">Área de Atend.</th>
+              <th style="padding:10px 14px;text-align:left;white-space:nowrap">Gestor</th>
+              <th style="padding:10px 14px;text-align:left;white-space:nowrap">WhatsApp(s)</th>
+              <th style="padding:10px 14px;text-align:center;white-space:nowrap">Contato</th>
+            </tr>
+          </thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>`;
+
+    _drawColabPie('chart-colab-cargo',  cargoMap,  PIE_COLORS_C, v => { window._colabFilter.cargo  = v; renderColaboradores(); });
+    _drawColabPie('chart-colab-area',   areaMap,   PIE_COLORS_C, v => { window._colabFilter.area   = v; renderColaboradores(); });
+    _drawColabPie('chart-colab-equipe', equipeMap, PIE_COLORS_C, v => { window._colabFilter.equipe = v; renderColaboradores(); });
+    _drawColabPie('chart-colab-gestor',  gestorMap, PIE_COLORS_C, v => { window._colabFilter.gestor  = v; renderColaboradores(); });
+  } catch(e) {
+    console.error('[renderColaboradores] ERRO:', e);
+    if (container) container.innerHTML = `<div style="color:#E53E3E;padding:24px;text-align:center">
+      Erro ao renderizar colaboradores: <strong>${e.message}</strong><br><small>Veja o console (F12) para detalhes.</small>
+    </div>`;
+  }
+}
+
+function _drawColabPie(canvasId, dataMap, colors, onClickCb) {
+  const entries = Object.entries(dataMap).sort((a,b) => b[1]-a[1]);
+  const labels  = entries.map(e => e[0]);
+  const data    = entries.map(e => e[1]);
+  charts[canvasId] = new Chart(document.getElementById(canvasId), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: colors.slice(0, labels.length), borderWidth: 2, borderColor: '#fff' }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 10, padding: 8 } },
+        tooltip: { callbacks: { label: ctx => ' ' + ctx.label + ': ' + ctx.parsed } }
+      },
+      onClick: (_e, items) => { if (items.length > 0) onClickCb(labels[items[0].index]); }
+    }
   });
 }
 
-// ============================================================
+function _openGoogleChat(email) {
+  if (navigator.clipboard) navigator.clipboard.writeText(email).catch(()=>{});
+  window.open('https://chat.google.com/', '_blank');
+  const tip = document.createElement('div');
+  tip.textContent = '💬 Email copiado! Cole no buscador do Google Chat';
+  Object.assign(tip.style, { position:'fixed', bottom:'24px', left:'50%', transform:'translateX(-50%)',
+    background:'#1C1A23', color:'#fff', padding:'10px 20px', borderRadius:'8px', zIndex:'99999',
+    fontSize:'.85rem', boxShadow:'0 4px 16px rgba(0,0,0,.3)', pointerEvents:'none' });
+  document.body.appendChild(tip);
+  setTimeout(() => tip.remove(), 3000);
+}
+
 // VIEW 7 — Implantações por Município × Vertical (Pivot + Gráficos)
 // ============================================================
 const IMPL_VERTICAIS = ['Arrecadação','Atendimento','Contratos','Contábil','Educação','ISS','Parceiros','Pessoal','Plataforma','Saúde'];
