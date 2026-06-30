@@ -840,8 +840,19 @@ const FIREBASE_CONFIG = {
   messagingSenderId: '403708882905',
   appId:             '1:403708882905:web:ad8e706f9357d232cc73c8'
 };
-firebase.initializeApp(FIREBASE_CONFIG);
-const _db   = firebase.firestore();
+// _db inicializado após scripts defer carregarem (via DOMContentLoaded)
+let _db;
+document.addEventListener('DOMContentLoaded', function() {
+  firebase.initializeApp(FIREBASE_CONFIG);
+  _db = firebase.firestore();
+  // Inicializa o date picker e dispara o load principal
+  (function initDatePicker() {
+    const dp  = document.getElementById('date-picker');
+    const today = new Date().toISOString().slice(0, 10);
+    if (dp) { dp.max = today; dp.value = today; }
+  })();
+  loadAllData();
+});
 
 
 // Busca todos os docs de uma coleção do Firestore (inclui _id para CRUD)
@@ -1132,21 +1143,20 @@ async function loadAllData() {
   showLoading(true);
   if (btn) btn.disabled = true;
 
-  // Carrega apenas o essencial para a abertura: jira_chamados (KPI + aba padrão 6)
-  // + sheets que falham rápido quando APPS_SCRIPT_URL está vazio.
+  // Carrega apenas o essencial: Colaboradores + CND (Estadual/Federal) + NPS + Risco.
+  // jira_chamados pausado temporariamente (state.jira e state.suporte ficam []).
   // Colaboradores e chamadosIssues são carregados sob demanda ao trocar de aba.
-  const [jiraRes, riscoRes, npsRes, cndEstRes, cndFedRes, suporteRes, suporteIssuesRes] = await Promise.allSettled([
-    fetchFirestore('jira_chamados'),
+  const [riscoRes, npsRes, cndEstRes, cndFedRes] = await Promise.allSettled([
     fetchSheet('Risco de Exclusão'),
     fetchSheet('NPS_Calculado'),
     fetchCNDEstadual(),
     fetchCNDFederal(),
-    fetchSheet('Jira_Chamados_Suporte'),
-    fetchSheet('Jira_Chamados_Suporte_Issues'),
   ]);
 
-  if (jiraRes.status === 'fulfilled')  state.jira  = jiraRes.value;
-  else { console.warn('Jira:', jiraRes.reason?.message); state.jira = []; }
+  // Chamados pausados — ficam vazios para exibir "Dados indisponíveis"
+  state.jira    = [];
+  state.suporte = [];
+  state.suporteIssues = [];
 
   if (riscoRes.status === 'fulfilled') state.risco = riscoRes.value;
   else { console.warn('Risco:', riscoRes.reason?.message); state.risco = []; }
@@ -1162,12 +1172,6 @@ async function loadAllData() {
 
   // Compatibilidade com KPIs legados (usa Estadual como referência geral)
   state.cnd = state.cndEstadual;
-
-  if (suporteRes.status === 'fulfilled') state.suporte = suporteRes.value;
-  else { console.warn('Suporte:', suporteRes.reason?.message); state.suporte = []; }
-
-  if (suporteIssuesRes.status === 'fulfilled') state.suporteIssues = suporteIssuesRes.value;
-  else { console.warn('SuporteIssues:', suporteIssuesRes.reason?.message); state.suporteIssues = []; }
 
   // Timestamps
   const now = new Date().toLocaleString('pt-BR');
@@ -3617,14 +3621,7 @@ function showLoading(show) {
 }
 
 // ============================================================
-// INICIALIZAÇÃO
-// ============================================================
-(function initDatePicker() {
-  const dp  = document.getElementById('date-picker');
-  const today = new Date().toISOString().slice(0, 10);
-  if (dp) { dp.max = today; dp.value = today; }
-})();
-loadAllData();
+// INICIALIZAÇÃO — movida para o DOMContentLoaded acima (junto com firebase.initializeApp)
 
 // ADMIN — Google Auth + Firestore CRUD
 // ============================================================
@@ -4494,4 +4491,9 @@ function adminExportCSV() {
         </span>
         <span id="admin-mun-actions" style="display:none;gap:8px">
           <button onclick="adminMunImportCSV()" style="padding:6px 14px;background:#805AD5;color:#fff;border:none;border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer">&#x1F4C2; Importar CSV (municipio,regiao)</button>
-          <input id="admin-mun-csv-input"
+          <input id="admin-mun-csv-input" type="file" accept=".csv" style="display:none" onchange="adminMunProcessCSV(this)">
+        </span>
+        <span id="admin-table-count" style="color:rgba(255,255,255,.4);font-size:.78rem;margin-left:auto"></span>
+      </div>
+      <!-- Tabela -->
+      <div style="overflow-x:aut
