@@ -484,18 +484,10 @@
       </div>
       <button class="btn-refresh" id="btn-refresh" onclick="refreshToday()">⟳ Atualizar</button>
 
-      <!-- Auth admin no header -->
-      <div id="hdr-guest">
-        <button class="btn-admin-login" onclick="adminSignIn()">
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:16px;height:16px" alt="G">
-          Admin
-        </button>
-      </div>
-      <div id="hdr-user" class="header-user" style="display:none">
-        <img id="hdr-user-photo" src="" alt="">
-        <span id="hdr-user-name"></span>
-        <button class="btn-signout" onclick="adminSignOut()">Sair</button>
-      </div>
+      <!-- Botão Admin no header -->
+      <button class="btn-admin-login" onclick="adminOpen()" title="Painel Admin">
+        🔐 Admin
+      </button>
     </div>
   </div>
 </header>
@@ -554,7 +546,7 @@
     <button class="tab-btn" onclick="switchTab(3)">⭐ NPS</button>
     <button class="tab-btn" onclick="switchTab(4)">🏛️ TCE SC / eSfinge</button>
     <button class="tab-btn" onclick="switchTab(5)">👥 Colaboradores</button>
-    <button class="tab-btn" id="tab-btn-admin" onclick="switchTab(7)">🗄️ Admin</button>
+    
   </div>
 
   <!-- Chart Panel -->
@@ -740,108 +732,6 @@
     </div>
 
 
-    <div class="view" id="view-admin">
-      <div class="view-title">Painel Admin — Banco de Dados</div>
-      <div class="view-subtitle">Firestore · <span id="admin-subtitle-auth">Faça login para editar</span></div>
-
-      <!-- Stats do banco -->
-      <div style="display:flex;gap:20px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
-        <div style="background:#F8F9FB;border:1px solid var(--border);border-radius:8px;padding:10px 18px;text-align:center">
-          <div id="stat-total" style="font-size:1.3rem;font-weight:700;color:var(--accent)">—</div>
-          <div style="font-size:.72rem;color:var(--text-muted)">docs nesta coleção</div>
-        </div>
-        <div style="background:#F8F9FB;border:1px solid var(--border);border-radius:8px;padding:10px 18px;text-align:center">
-          <div id="stat-update" style="font-size:.85rem;font-weight:600;color:var(--text)">—</div>
-          <div style="font-size:.72rem;color:var(--text-muted)">última atualização</div>
-        </div>
-      </div>
-
-      <div id="admin-container" style="margin-top:4px">
-        <!-- Filtros -->
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:flex-end">
-          <div>
-            <label style="font-size:.78rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Coleção</label>
-            <select id="admin-col-sel" onchange="renderAdminView()" style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:.85rem;background:#fff;color:var(--text);min-width:200px">
-              <option value="jira_chamados">jira_chamados (agregado)</option>
-              <option value="jira_chamados_issues">jira_chamados_issues (individual)</option>
-              <option value="status_envio">status_envio (eSfinge)</option>
-            </select>
-          </div>
-          <div>
-            <label style="font-size:.78rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Município</label>
-            <select id="admin-mun-sel" onchange="adminApplyFilters()" style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:.85rem;background:#fff;color:var(--text);min-width:180px">
-              <option value="">Todos</option>
-            </select>
-          </div>
-          <div>
-            <label style="font-size:.78rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Vertical</label>
-            <select id="admin-vert-sel" onchange="adminApplyFilters()" style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:.85rem;background:#fff;color:var(--text);min-width:140px">
-              <option value="">Todas</option>
-            </select>
-          </div>
-          <div>
-            <label style="font-size:.78rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Buscar</label>
-            <input id="admin-search" type="text" placeholder="Filtrar…" oninput="adminApplyFilters()" style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:.85rem;width:180px">
-          </div>
-          <button onclick="adminExportCSV()" style="padding:7px 16px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:.83rem;font-weight:600;cursor:pointer">⬇ CSV</button>
-          <span id="admin-count" style="font-size:.78rem;color:var(--text-muted);align-self:center"></span>
-        </div>
-        <!-- Tabela -->
-        <div style="overflow-x:auto;border-radius:8px;border:1px solid var(--border)">
-          <table id="admin-table" style="width:100%;border-collapse:collapse;font-size:.82rem">
-            <thead id="admin-thead"></thead>
-            <tbody id="admin-tbody"></tbody>
-          </table>
-        </div>
-        <div id="admin-empty" style="display:none;text-align:center;padding:40px;color:var(--text-muted)">Nenhum dado encontrado.</div>
-
-        <!-- ── Painel eSfinge (status_envio) ───────────────────────── -->
-        <div id="esfinge-panel" style="display:none">
-          <!-- Filtros eSfinge -->
-          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:flex-end">
-            <div>
-              <label style="font-size:.78rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Ano</label>
-              <select id="esf-ano" onchange="renderEsfingeMatrix()" style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:.85rem;background:#fff;color:var(--text)"></select>
-            </div>
-            <div>
-              <label style="font-size:.78rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Mês</label>
-              <select id="esf-mes" onchange="renderEsfingeMatrix()" style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:.85rem;background:#fff;color:var(--text)">
-                <option value="1">Jan</option><option value="2">Fev</option><option value="3">Mar</option>
-                <option value="4">Abr</option><option value="5">Mai</option><option value="6">Jun</option>
-                <option value="7">Jul</option><option value="8">Ago</option><option value="9">Set</option>
-                <option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option>
-              </select>
-            </div>
-            <div>
-              <label style="font-size:.78rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Municípios</label>
-              <select id="esf-portfolio" onchange="renderEsfingeMatrix()" style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:.85rem;background:#fff;color:var(--text)">
-                <option value="portfolio">Apenas portfólio (61)</option>
-                <option value="todos">Todos</option>
-              </select>
-            </div>
-            <div>
-              <label style="font-size:.78rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Buscar município</label>
-              <input id="esf-search" type="text" placeholder="Filtrar…" oninput="renderEsfingeMatrix()" style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:.85rem;width:160px">
-            </div>
-            <span id="esf-count" style="font-size:.78rem;color:var(--text-muted);align-self:center"></span>
-          </div>
-          <!-- Legenda -->
-          <div style="display:flex;gap:16px;font-size:.75rem;color:var(--text-muted);margin-bottom:10px">
-            <span>✅ Enviou</span>
-            <span style="color:var(--red)">❌ Não enviou</span>
-            <span>— Sem dado</span>
-          </div>
-          <!-- Matriz -->
-          <div id="esf-matrix-wrap" style="overflow-x:auto;border-radius:8px;border:1px solid var(--border)">
-            <table id="esf-matrix" style="width:100%;border-collapse:collapse;font-size:.78rem">
-              <thead id="esf-thead"></thead>
-              <tbody id="esf-tbody"></tbody>
-            </table>
-          </div>
-          <div id="esf-empty" style="display:none;text-align:center;padding:40px;color:var(--text-muted)">Nenhum dado para o período selecionado.</div>
-        </div>
-      </div>
-    </div>
 
   </div>
 </main>
@@ -885,21 +775,6 @@
   </div>
 </div>
 
-<!-- Modal: Edição de documento Admin -->
-<div id="admin-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center">
-  <div style="background:#fff;border-radius:12px;padding:28px;width:min(560px,94vw);max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-      <h3 style="margin:0;font-size:1rem;font-weight:700;color:var(--text)">✏️ Editar documento</h3>
-      <button onclick="document.getElementById('admin-edit-modal').style.display='none'" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text-muted)">✕</button>
-    </div>
-    <div id="admin-edit-content"></div>
-    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
-      <button onclick="document.getElementById('admin-edit-modal').style.display='none'" style="padding:8px 20px;background:#f3f4f6;border:none;border-radius:7px;font-size:.85rem;cursor:pointer">Cancelar</button>
-      <button id="admin-edit-save-btn" onclick="adminSaveEdit()" style="padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:7px;font-size:.85rem;font-weight:600;cursor:pointer">Salvar</button>
-    </div>
-  </div>
-</div>
-
 <!-- Modal: demais municípios -->
 <div class="modal-overlay hidden" id="outro-modal" onclick="closeOutroModal(event)">
   <div class="modal-box">
@@ -930,115 +805,7 @@ const FIREBASE_CONFIG = {
 };
 firebase.initializeApp(FIREBASE_CONFIG);
 const _db   = firebase.firestore();
-const _auth = firebase.auth();
 
-// ── Admin: Auth Google ─────────────────────────────────────────────────
-let _adminUser = null;
-
-_auth.onAuthStateChanged(function(user) {
-  _adminUser = user;
-
-  // Atualizar header
-  const hdrGuest = document.getElementById('hdr-guest');
-  const hdrUser  = document.getElementById('hdr-user');
-  if (hdrGuest) hdrGuest.style.display = user ? 'none' : 'block';
-  if (hdrUser)  hdrUser.style.display  = user ? 'flex'  : 'none';
-  if (user) {
-    const nameEl  = document.getElementById('hdr-user-name');
-    const photoEl = document.getElementById('hdr-user-photo');
-    if (nameEl)  nameEl.textContent = user.displayName ? user.displayName.split(' ')[0] : 'Admin';
-    if (photoEl) { if (user.photoURL) photoEl.src = user.photoURL; else photoEl.style.display = 'none'; }
-  }
-
-  // Atualizar subtítulo admin
-  const subEl = document.getElementById('admin-subtitle-auth');
-  if (subEl) subEl.textContent = user ? ('Logado como ' + (user.email || '')) : 'Faça login para editar';
-
-  // Re-renderizar tabela admin se aberta
-  if (_adminState.docs.length) adminApplyFilters();
-});
-
-function adminSignIn() {
-  const provider = new firebase.auth.GoogleAuthProvider();
-  _auth.signInWithPopup(provider).catch(e => alert('Erro ao entrar: ' + e.message));
-}
-function adminSignOut() {
-  _auth.signOut();
-}
-
-// ── Admin: CRUD ────────────────────────────────────────────────────────
-function adminDeleteDoc(col, id, rowBtn) {
-  if (!_adminUser) { alert('Faça login para excluir.'); return; }
-  if (!confirm('Excluir este documento? Esta ação não pode ser desfeita.')) return;
-  rowBtn.textContent = '…';
-  rowBtn.disabled = true;
-  _db.collection(col).doc(id).delete()
-    .then(() => {
-      _adminState.docs = _adminState.docs.filter(d => d._id !== id);
-      _adminState.filtered = _adminState.filtered.filter(d => d._id !== id);
-      adminApplyFilters();
-    })
-    .catch(e => { alert('Erro ao excluir: ' + e.message); rowBtn.textContent = '🗑'; rowBtn.disabled = false; });
-}
-
-function adminEditDoc(col, docObj) {
-  if (!_adminUser) { alert('Faça login para editar.'); return; }
-  const modal   = document.getElementById('admin-edit-modal');
-  const content = document.getElementById('admin-edit-content');
-  // Gera campos editáveis (todos exceto _id)
-  const fields = Object.keys(docObj).filter(k => k !== '_id');
-  content.innerHTML = fields.map(k => {
-    const val = docObj[k] !== undefined ? docObj[k] : '';
-    return '<div style="margin-bottom:10px">' +
-      '<label style="font-size:.78rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:3px">' + k + '</label>' +
-      '<input id="edit-field-' + k + '" value="' + String(val).replace(/"/g, '&quot;') + '" ' +
-      'style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:.85rem;box-sizing:border-box">' +
-      '</div>';
-  }).join('');
-  modal.dataset.col    = col;
-  modal.dataset.id     = docObj._id;
-  modal.dataset.fields = JSON.stringify(fields);
-  modal.style.display  = 'flex';
-}
-
-function adminSaveEdit() {
-  const modal  = document.getElementById('admin-edit-modal');
-  const col    = modal.dataset.col;
-  const id     = modal.dataset.id;
-  const fields = JSON.parse(modal.dataset.fields);
-  const updated = {};
-  fields.forEach(k => {
-    const el = document.getElementById('edit-field-' + k);
-    if (el) {
-      const v = el.value;
-      // tenta converter para número se possível
-      updated[k] = v !== '' && !isNaN(v) && !isNaN(parseFloat(v)) ? parseFloat(v) : v;
-    }
-  });
-  const btn = document.getElementById('admin-edit-save-btn');
-  btn.textContent = '…'; btn.disabled = true;
-  _db.collection(col).doc(id).update(updated)
-    .then(() => {
-      const idx = _adminState.docs.findIndex(d => d._id === id);
-      if (idx >= 0) _adminState.docs[idx] = { ..._adminState.docs[idx], ...updated };
-      adminApplyFilters();
-      document.getElementById('admin-edit-modal').style.display = 'none';
-    })
-    .catch(e => { alert('Erro ao salvar: ' + e.message); btn.textContent = 'Salvar'; btn.disabled = false; });
-}
-
-// ── Admin: Stats ──────────────────────────────────────────────────────
-async function updateAdminStats(docs) {
-  document.getElementById('stat-total').textContent = docs.length;
-  try {
-    const meta = await fetchFirestoreMeta();
-    if (meta) {
-      const ts = meta.timestamp || meta.atualizado_em || '';
-      document.getElementById('stat-update').textContent =
-        ts ? new Date(ts).toLocaleString('pt-BR') : '—';
-    }
-  } catch(e) {}
-}
 
 // Busca todos os docs de uma coleção do Firestore (inclui _id para CRUD)
 async function fetchFirestore(collectionName) {
@@ -1550,7 +1317,7 @@ function npsZone(score) {
 // TAB SWITCHING
 // ============================================================
 // Mapa índice → id da view (necessário pois os índices não são sequenciais no DOM)
-const TAB_VIEW_IDS = { 0: 'view-0', 6: 'view-suporte', 1: 'view-7', 2: 'view-3', 7: 'view-admin' };
+const TAB_VIEW_IDS = { 0: 'view-0', 6: 'view-suporte', 1: 'view-7', 2: 'view-3' };
 
 function switchTab(idx) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -1564,9 +1331,7 @@ function switchTab(idx) {
     const domIdx = [6,0,1,2,3,4,5].indexOf(idx); // ordem das tabs no nav
     document.querySelectorAll('.view')[domIdx]?.classList.add('active');
   }
-  const adminBtn = document.getElementById('tab-btn-admin');
-  if (idx === 7) { adminBtn?.classList.add('active'); renderAdminView(); }
-  else document.querySelectorAll('.tab-btn')[([6,0,1,2,3,4,5].indexOf(idx))]?.classList.add('active');
+  document.querySelectorAll('.tab-btn')[([6,0,1,2,3,4,5].indexOf(idx))]?.classList.add('active');
   activeTab = idx;
   renderView(idx);
 }
@@ -1582,7 +1347,6 @@ function renderView(idx) {
     case 3: renderNPSGeral(); renderNPSPorCliente(); break;
     case 4: renderCND(); break;
     case 5: renderColaboradores(); break;
-    case 7: renderAdminView(); break;
   }
 }
 
@@ -3736,419 +3500,431 @@ function showLoading(show) {
   if (dp) { dp.max = today; dp.value = today; }
 })();
 loadAllData();
+
+// ADMIN — Google Auth + Firestore CRUD
 // ============================================================
-// ADMIN — Painel de dados Firestore
-// ============================================================
-const _adminState = { collection: 'jira_chamados', docs: [], filtered: [] };
+const _ADMIN_ALLOWED = ['emanuel.melo87@gmail.com'];
+const _adminData = { collection: null, docs: [], filtered: [], docIds: [] };
+let _editDocId = null;
 
-async function renderAdminView() {
-  const sel = document.getElementById('admin-col-sel');
-  const col = sel ? sel.value : 'jira_chamados';
-
-  const isEsfinge = col === 'status_envio';
-
-  // Mostrar/ocultar painéis
-  document.getElementById('admin-table').closest('div').style.display    = isEsfinge ? 'none' : 'block';
-  document.getElementById('admin-empty').style.display                   = 'none';
-  document.getElementById('esfinge-panel').style.display                 = isEsfinge ? 'block' : 'none';
-
-  // Mostrar/ocultar filtros padrão irrelevantes para eSfinge
-  const adminFilters = document.getElementById('admin-mun-sel')?.closest('div')?.parentElement;
-  if (adminFilters) {
-    Array.from(adminFilters.children).forEach((el, i) => {
-      if (i > 0 && i < 4) el.style.display = isEsfinge ? 'none' : ''; // mun, vert, search
+async function adminOpen() {
+  document.getElementById('admin-overlay').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  try {
+    await _loadFirebaseSDK();
+    firebase.auth().onAuthStateChanged(function(user) {
+      if (user) _adminShowPanel(user);
+      else _adminShowLogin();
     });
-  }
-
-  if (isEsfinge) { renderAdminEsfinge(); return; }
-
-  // Só recarrega se mudou de coleção ou está vazio
-  if (_adminState.collection !== col || _adminState.docs.length === 0) {
-    _adminState.collection = col;
-    document.getElementById('admin-tbody').innerHTML = '<tr><td colspan="99" style="text-align:center;padding:20px;color:var(--text-muted)">Carregando…</td></tr>';
-    try {
-      _adminState.docs = await fetchFirestore(col);
-    } catch(e) {
-      document.getElementById('admin-tbody').innerHTML = '<tr><td colspan="99" style="text-align:center;padding:20px;color:var(--red)">Erro ao carregar: ' + e.message + '</td></tr>';
-      return;
-    }
-    _rebuildAdminFilters();
-  }
-  adminApplyFilters();
-}
-
-function _rebuildAdminFilters() {
-  const docs = _adminState.docs;
-  const muns  = [...new Set(docs.map(d => d.municipio).filter(Boolean))].sort((a,b) => a.localeCompare(b,'pt-BR'));
-  const verts = [...new Set(docs.map(d => d.vertical).filter(Boolean))].sort((a,b) => a.localeCompare(b,'pt-BR'));
-
-  const munSel  = document.getElementById('admin-mun-sel');
-  const vertSel = document.getElementById('admin-vert-sel');
-  if (munSel) {
-    munSel.innerHTML = '<option value="">Todos</option>' + muns.map(m => `<option value="${m}">${m}</option>`).join('');
-  }
-  if (vertSel) {
-    vertSel.innerHTML = '<option value="">Todas</option>' + verts.map(v => `<option value="${v}">${v}</option>`).join('');
+  } catch(e) {
+    console.error('Erro ao carregar Firebase SDK:', e);
+    _adminShowLogin();
   }
 }
 
-function adminApplyFilters() {
-  const col    = document.getElementById('admin-col-sel')?.value || 'jira_chamados';
-  const mun    = document.getElementById('admin-mun-sel')?.value || '';
-  const vert   = document.getElementById('admin-vert-sel')?.value || '';
-  const search = (document.getElementById('admin-search')?.value || '').toLowerCase().trim();
+function adminClose() {
+  document.getElementById('admin-overlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
 
-  // Se mudou de coleção, recarregar
-  if (_adminState.collection !== col) { renderAdminView(); return; }
+function _adminShowLogin() {
+  document.getElementById('admin-login-panel').style.display = 'flex';
+  document.getElementById('admin-data-panel').style.display = 'none';
+  document.getElementById('admin-signout-btn').style.display = 'none';
+  document.getElementById('admin-user-info').textContent = '';
+}
 
-  let rows = _adminState.docs;
-  if (mun)    rows = rows.filter(d => d.municipio === mun);
-  if (vert)   rows = rows.filter(d => d.vertical === vert);
-  if (search) rows = rows.filter(d => JSON.stringify(d).toLowerCase().includes(search));
-  _adminState.filtered = rows;
-
-  document.getElementById('admin-count').textContent = rows.length + ' registros';
-
-  if (rows.length === 0) {
-    document.getElementById('admin-table').style.display = 'none';
-    document.getElementById('admin-empty').style.display = 'block';
+function _adminShowPanel(user) {
+  if (!_ADMIN_ALLOWED.includes(user.email)) {
+    document.getElementById('admin-login-error').textContent = 'Acesso negado: ' + user.email;
+    document.getElementById('admin-login-error').style.display = 'block';
+    firebase.auth().signOut();
     return;
   }
-  document.getElementById('admin-table').style.display = 'table';
-  document.getElementById('admin-empty').style.display = 'none';
-
-  // Cabeçalho dinâmico
-  const COLS_ORDER = col === 'jira_chamados'
-    ? ['municipio','vertical','total_chamados','slo_estourado','atualizado_em']
-    : ['key','municipio','vertical','status','slo_horas','responsavel','issuetype','summary','atualizado_em','url'];
-  const allKeys = COLS_ORDER.filter(k => rows.some(d => d[k] !== undefined && d[k] !== ''));
-  const thead = document.getElementById('admin-thead');
-  const acaoTh = _adminUser ? '<th style="padding:9px 12px;background:#1C1A23;color:#fff;font-size:.78rem;font-weight:600;text-align:left;white-space:nowrap">Ações</th>' : '';
-  thead.innerHTML = '<tr>' + allKeys.map(k =>
-    `<th style="padding:9px 12px;background:#1C1A23;color:#fff;font-size:.78rem;font-weight:600;text-align:left;white-space:nowrap">${k}</th>`
-  ).join('') + acaoTh + '</tr>';
-
-  // Corpo
-  const tbody = document.getElementById('admin-tbody');
-  tbody.innerHTML = rows.map((d, i) => {
-    const bg = i%2===0?'#fff':'#F9FAFB';
-    const cells = allKeys.map(k => {
-      const val = d[k] !== undefined ? String(d[k]) : '—';
-      if (k === 'url' && val.startsWith('http'))
-        return `<td style="padding:7px 12px;white-space:nowrap"><a href="${val}" target="_blank" style="color:var(--accent);text-decoration:none;font-size:.78rem">🔗 Abrir</a></td>`;
-      if (k === 'atualizado_em' && val.length > 10)
-        return `<td style="padding:7px 12px;white-space:nowrap;font-size:.78rem;color:var(--text-muted)">${new Date(val).toLocaleString('pt-BR')}</td>`;
-      return `<td style="padding:7px 12px;white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis;font-size:.82rem">${val}</td>`;
-    }).join('');
-    const actCol = col;
-    const colWritable = true; // todas as coleções liberadas com auth
-    const actionBtns = _adminUser && d._id && colWritable ? (
-      `<td style="padding:4px 8px;white-space:nowrap">` +
-      `<button onclick='adminEditDoc("${actCol}", ${JSON.stringify(d).replace(/'/g, "&#39;")})' ` +
-        `style="padding:3px 10px;background:#4F46E5;color:#fff;border:none;border-radius:5px;font-size:.75rem;cursor:pointer;margin-right:4px">✏️</button>` +
-      `<button onclick='adminDeleteDoc("${actCol}", "${d._id}", this)' ` +
-        `style="padding:3px 10px;background:#EF4444;color:#fff;border:none;border-radius:5px;font-size:.75rem;cursor:pointer">🗑</button>` +
-      `</td>`
-    ) : '';
-    return `<tr style="background:${bg};border-bottom:1px solid #E2E8F0">${cells}${actionBtns}</tr>`;
-  }).join('');
+  document.getElementById('admin-login-panel').style.display = 'none';
+  document.getElementById('admin-data-panel').style.display = 'block';
+  document.getElementById('admin-signout-btn').style.display = 'block';
+  document.getElementById('admin-user-info').textContent = user.email;
+  _adminLoadCounts();
 }
 
-// ── TCE SC / eSfinge — controle de sub-abas nível 1 ─────────────────────
-function switchTCETab(tab) {
-  const certBtn   = document.getElementById('tce-tab-certidao');
-  const envioBtn  = document.getElementById('tce-tab-envio');
-  const certPane  = document.getElementById('tce-pane-certidao');
-  const envioPane = document.getElementById('tce-pane-envio');
-  if (!certBtn) return;
+function adminSignIn() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({ login_hint: 'emanuel.melo87@gmail.com' });
+  firebase.auth().signInWithPopup(provider)
+    .then(r => _adminShowPanel(r.user))
+    .catch(e => {
+      document.getElementById('admin-login-error').textContent = 'Erro: ' + e.message;
+      document.getElementById('admin-login-error').style.display = 'block';
+    });
+}
 
-  const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#4F46E5';
-  const mutedColor  = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#6B7280';
+function adminSignOut() {
+  firebase.auth().signOut().then(_adminShowLogin);
+}
 
-  if (tab === 'certidao') {
-    certPane.style.display  = 'block';
-    envioPane.style.display = 'none';
-    certBtn.style.borderBottomColor  = 'var(--accent)';
-    certBtn.style.color              = 'var(--accent)';
-    envioBtn.style.borderBottomColor = 'transparent';
-    envioBtn.style.color             = 'var(--text-muted)';
+async function _adminLoadCounts() {
+  for (const col of ['jira_chamados','jira_chamados_issues','_meta','colaboradores']) {
+    try {
+      const snap = await _db.collection(col).get();
+      const el = document.getElementById('card-count-' + col);
+      if (el) el.textContent = snap.size + ' docs';
+    } catch(e) {}
+  }
+}
+
+async function adminLoadCollection(col) {
+  _adminData.collection = col;
+  document.getElementById('admin-table-area').style.display = 'block';
+  document.getElementById('admin-table-title').textContent = col;
+  document.getElementById('admin-main-tbody').innerHTML =
+    '<tr><td colspan="99" style="color:rgba(255,255,255,.4);padding:24px;text-align:center">Carregando…</td></tr>';
+  // Usa SDK se disponível (para ter IDs dos docs para edição), senão REST
+  if (_db) {
+    const snap = await _db.collection(col).get();
+    _adminData.docs   = snap.docs.map(d => d.data());
+    _adminData.docIds = snap.docs.map(d => d.id);
   } else {
-    certPane.style.display  = 'none';
-    envioPane.style.display = 'block';
-    certBtn.style.borderBottomColor  = 'transparent';
-    certBtn.style.color              = 'var(--text-muted)';
-    envioBtn.style.borderBottomColor = 'var(--accent)';
-    envioBtn.style.color             = 'var(--accent)';
-    initEnvioPanel();
+    const docs = await fetchFirestore(col);
+    _adminData.docs   = docs;
+    _adminData.docIds = docs.map((d, i) => d.key || String(i));
   }
+  _adminData.filtered = _adminData.docs.slice();
+  // Mostra/oculta botões de gestão de colaboradores
+  const colabActions = document.getElementById('admin-colab-actions');
+  if (colabActions) colabActions.style.display = (col === 'colaboradores') ? 'flex' : 'none';
+  _adminRenderTable();
 }
 
-// ── Status de Envio — painel município × meses ──────────────────────────
-const _ENVIO = { docs: [], loaded: false, loading: false };
-const MESES_LABEL = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-
-async function initEnvioPanel() {
-  // Preencher ano
-  const anoSel = document.getElementById('envio-ano');
-  if (!anoSel.options.length) {
-    const anoAtual = new Date().getFullYear();
-    for (let y = anoAtual; y >= anoAtual - 3; y--) anoSel.add(new Option(y, y));
-    anoSel.value = anoAtual;
-  }
-
-  // Carregar docs se ainda não fez
-  if (!_ENVIO.loaded && !_ENVIO.loading) {
-    _ENVIO.loading = true;
-    document.getElementById('envio-select-hint').style.display = 'none';
-    document.getElementById('envio-loading').style.display = 'block';
-    try {
-      _ENVIO.docs = await fetchFirestore('status_envio');
-      _ENVIO.loaded = true;
-
-      // Preencher dropdown de municípios com todos únicos, ordenados
-      const munSel = document.getElementById('envio-mun');
-      const allMuns = [...new Set(_ENVIO.docs.map(d => d.municipio).filter(Boolean))].sort((a,b) => a.localeCompare(b,'pt-BR'));
-      allMuns.forEach(m => munSel.add(new Option(m, m)));
-
-      // Selecionar automaticamente o município do portfólio se houver apenas 1 conta carregada
-      // (ou deixar o usuário escolher)
-    } catch(e) {
-      document.getElementById('envio-loading').style.display = 'none';
-      document.getElementById('envio-empty').style.display = 'block';
-      document.getElementById('envio-empty').innerHTML =
-        '<div style="font-size:2rem;margin-bottom:8px">⚠️</div><div>Erro ao carregar dados: ' + e.message + '</div>';
-      _ENVIO.loading = false;
-      return;
-    }
-    _ENVIO.loading = false;
-  }
-
-  document.getElementById('envio-loading').style.display = 'none';
-  const munSel = document.getElementById('envio-mun');
-  if (!munSel.value) {
-    document.getElementById('envio-select-hint').style.display = 'block';
-    return;
-  }
-  renderEnvioView();
+function adminTableFilter() {
+  const q = (document.getElementById('admin-table-search').value || '').toLowerCase();
+  _adminData.filtered = q
+    ? _adminData.docs.filter(d => JSON.stringify(d).toLowerCase().includes(q))
+    : _adminData.docs.slice();
+  _adminRenderTable();
 }
 
-function renderEnvioView() {
-  if (!_ENVIO.loaded) return; // ainda carregando
+function _adminRenderTable() {
+  const rows = _adminData.filtered;
+  document.getElementById('admin-table-count').textContent = rows.length + ' registros';
+  const COL_ORDER = _adminData.collection === 'jira_chamados'
+    ? ['municipio','vertical','total_chamados','slo_estourado','atualizado_em']
+    : _adminData.collection === 'jira_chamados_issues'
+    ? ['key','municipio','vertical','status','slo_horas','responsavel','issuetype','summary','atualizado_em']
+    : _adminData.collection === 'colaboradores'
+    ? ['nome','cargo','area_atuacao','area_atendimento','equipe_atendimento','email','whatsapp','whatsapp_prof','gestor']
+    : _adminData.collection === 'municipios'
+    ? ['municipio','regiao']
+    : _adminData.collection === 'status_envio'
+    ? ['municipio','regiao','ano','modulo','jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez','ratificado_ate']
+    : Object.keys(rows[0] || {});
+  const keys = COL_ORDER.filter(k => rows.some(d => d[k] !== undefined && d[k] !== ''));
+  if (!keys.length && rows.length) keys.push(...Object.keys(rows[0]));
+  document.getElementById('admin-main-thead').innerHTML =
+    '<tr style="position:sticky;top:0">' +
+    keys.map(k => `<th style="padding:10px 14px;background:#0F1117;color:rgba(255,255,255,.7);font-size:.75rem;font-weight:600;text-align:left;white-space:nowrap;border-bottom:1px solid #2D3748">${k}</th>`).join('') +
+    '<th style="padding:10px 14px;background:#0F1117;color:rgba(255,255,255,.7);font-size:.75rem;font-weight:600;border-bottom:1px solid #2D3748">Ações</th></tr>';
+  document.getElementById('admin-main-tbody').innerHTML = rows.map((d, i) => {
+    const docIdx = _adminData.docs.indexOf(d);
+    const docId  = _adminData.docIds[docIdx] || String(i);
+    return `<tr style="border-bottom:1px solid #1a2030;transition:background .1s" onmouseover="this.style.background='#252836'" onmouseout="this.style.background=''">` +
+      keys.map(k => {
+        const val = d[k] !== undefined ? String(d[k]) : '—';
+        if (k === 'url' && val.startsWith('http'))
+          return `<td style="padding:8px 14px;white-space:nowrap"><a href="${val}" target="_blank" style="color:#0761FF;font-size:.78rem">Abrir</a></td>`;
+        if (k === 'atualizado_em' && val.length > 10)
+          return `<td style="padding:8px 14px;white-space:nowrap;color:rgba(255,255,255,.4);font-size:.78rem">${new Date(val).toLocaleString('pt-BR')}</td>`;
+        if (k === 'slo_horas') {
+          const neg = val.startsWith('-');
+          return `<td style="padding:8px 14px;white-space:nowrap;font-weight:600;color:${neg?'#FC8181':'#68D391'}">${val||'—'}</td>`;
+        }
+        return `<td style="padding:8px 14px;color:#E2E8F0;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${val.replace(/"/g,'&quot;')}">${val}</td>`;
+      }).join('') +
+      (`<td style="padding:8px 14px;white-space:nowrap">` +
+      `<button onclick="adminOpenEdit('${docId}')" style="padding:4px 12px;background:#0761FF;border:none;color:#fff;border-radius:5px;font-size:.75rem;cursor:pointer;font-weight:600;margin-right:4px">Editar</button>` +
+      (_adminData.collection === 'colaboradores' ? `<button onclick="adminColabDelete('${docId}')" style="padding:4px 10px;background:#E53E3E;border:none;color:#fff;border-radius:5px;font-size:.75rem;cursor:pointer;font-weight:600">&#x1F5D1;</button>` : '') +
+      `</td></tr>`);
+  }).join('');
+}
 
-  const mun = (document.getElementById('envio-mun')?.value || '').trim();
-  const ano = parseInt(document.getElementById('envio-ano')?.value) || new Date().getFullYear();
-
-  document.getElementById('envio-select-hint').style.display = !mun ? 'block' : 'none';
-  if (!mun) return;
-
-  // Filtrar por município e ano
-  const docs = _ENVIO.docs.filter(d => d.municipio === mun && d.ano == ano);
-
-  // Módulos únicos (linhas) ordenados
-  const modulos = [...new Set(docs.map(d => d.modulo).filter(Boolean))].sort((a,b) => a.localeCompare(b,'pt-BR'));
-
-  document.getElementById('envio-info').textContent = modulos.length + ' módulos · ' + ano;
-
-  if (modulos.length === 0) {
-    document.getElementById('envio-wrap').style.display = 'none';
-    document.getElementById('envio-empty').style.display = 'block';
-    document.getElementById('envio-empty').innerHTML =
-      '<div style="font-size:2rem;margin-bottom:8px">📭</div>' +
-      '<div>Nenhum dado encontrado para <strong>' + mun + '</strong> em ' + ano + '.</div>' +
-      '<div style="font-size:.78rem;margin-top:8px">Execute a extensão eSfinge Updater para importar dados.</div>';
-    return;
+function adminOpenEdit(docId) {
+  _editDocId = docId;
+  const docIdx = _adminData.docIds.indexOf(docId);
+  const data   = _adminData.docs[docIdx] || {};
+  document.getElementById('admin-edit-title').textContent = 'Editar: ' + docId;
+  document.getElementById('admin-edit-status').textContent = '';
+  const SKIP = ['atualizado_em','key','url'];
+  let fieldsHtml;
+  if (_adminData.collection === 'colaboradores') {
+    // Sempre mostrar todos os campos padrão de colaboradores
+    const COLAB_FIELDS = ['nome','cargo','area_atuacao','area_atendimento','equipe_atendimento','email','whatsapp','whatsapp_prof','gestor'];
+    const COLAB_LABELS = {
+      nome:'Nome', cargo:'Cargo', area_atuacao:'Área de Atuação',
+      area_atendimento:'Área de Atendimento', equipe_atendimento:'Equipe de Atendimento',
+      email:'E-mail', whatsapp:'WhatsApp Pessoal (ex: 47991234567)', whatsapp_prof:'WhatsApp Prof. (ex: 47991234567)', gestor:'Gestor'
+    };
+    fieldsHtml = COLAB_FIELDS.map(k => {
+      const v = data[k] !== undefined ? String(data[k]) : '';
+      return `<div style="margin-bottom:14px"><label style="color:rgba(255,255,255,.6);font-size:.78rem;display:block;margin-bottom:4px">${COLAB_LABELS[k]||k}</label><input data-field="${k}" value="${v.replace(/"/g,'&quot;')}" style="width:100%;padding:8px 12px;background:#0F1117;border:1px solid #2D3748;border-radius:6px;color:#fff;font-size:.85rem"></div>`;
+    }).join('');
+  } else {
+    fieldsHtml = Object.entries(data)
+      .filter(([k]) => !SKIP.includes(k))
+      .map(([k,v]) => `<div style="margin-bottom:14px"><label style="color:rgba(255,255,255,.6);font-size:.78rem;display:block;margin-bottom:4px">${k}</label><input data-field="${k}" value="${String(v).replace(/"/g,'&quot;')}" style="width:100%;padding:8px 12px;background:#0F1117;border:1px solid #2D3748;border-radius:6px;color:#fff;font-size:.85rem"></div>`).join('');
   }
-  document.getElementById('envio-wrap').style.display = 'block';
-  document.getElementById('envio-empty').style.display = 'none';
+  document.getElementById('admin-edit-fields').innerHTML = fieldsHtml;
+  document.getElementById('admin-edit-modal').style.display = 'flex';
+}
 
-  // Índice: mes → modulo → qtd_pacotes
-  const idx = {};
-  docs.forEach(d => {
-    if (!idx[d.mes]) idx[d.mes] = {};
-    idx[d.mes][d.modulo] = d.qtd_pacotes;
+function adminCloseEdit() {
+  document.getElementById('admin-edit-modal').style.display = 'none';
+  _editDocId = null;
+}
+
+async function adminSaveEdit() {
+  const inputs  = document.querySelectorAll('#admin-edit-fields input[data-field]');
+  const updates = {};
+  inputs.forEach(inp => {
+    const k = inp.dataset.field, v = inp.value;
+    const num = Number(v);
+    updates[k] = (!isNaN(num) && v.trim() !== '') ? num : v;
   });
-
-  // Quais meses têm pelo menos 1 dado
-  const mesesComDado = [1,2,3,4,5,6,7,8,9,10,11,12].filter(m => idx[m]);
-  const meses = mesesComDado.length ? [1,2,3,4,5,6,7,8,9,10,11,12] : [];
-
-  // Cabeçalho: Módulo | Jan | Fev | … | Dez | Total
-  const TH = 'style="padding:9px 10px;background:#1C1A23;color:#fff;font-size:.78rem;font-weight:600;text-align:center;white-space:nowrap"';
-  const TH_LEFT = 'style="padding:9px 14px;background:#1C1A23;color:#fff;font-size:.78rem;font-weight:600;text-align:left;white-space:nowrap;min-width:200px"';
-  const thead = document.getElementById('envio-thead');
-  thead.innerHTML = '<tr>' +
-    '<th ' + TH_LEFT + '>Módulo</th>' +
-    meses.map(m => {
-      const hasData = !!idx[m];
-      const color   = hasData ? '#fff' : '#666';
-      return '<th ' + TH + ' style="padding:9px 10px;background:#1C1A23;color:' + color + ';font-size:.78rem;font-weight:600;text-align:center;white-space:nowrap">' +
-        MESES_LABEL[m-1] + '</th>';
-    }).join('') +
-    '<th ' + TH + '>Enviados</th>' +
-    '</tr>';
-
-  // Corpo: uma linha por módulo
-  const tbody = document.getElementById('envio-tbody');
-  tbody.innerHTML = modulos.map((mod, i) => {
-    const bg = i % 2 === 0 ? '#fff' : '#F9FAFB';
-    let enviados = 0;
-    let totalMeses = 0;
-    const cells = meses.map(m => {
-      if (!idx[m]) {
-        // mês sem nenhum dado — coluna "vazia"
-        return '<td style="text-align:center;padding:8px 4px;color:#ddd;font-size:.85rem;background:' + bg + '">—</td>';
-      }
-      totalMeses++;
-      const qtd = idx[m][mod];
-      if (qtd === undefined || qtd === null) {
-        return '<td style="text-align:center;padding:8px 4px;color:#bbb;font-size:.85rem;background:' + bg + '">—</td>';
-      }
-      if (qtd > 0) {
-        enviados++;
-        return '<td style="text-align:center;padding:8px 4px;font-size:.9rem;background:' + bg + '" title="' + qtd + ' pacote(s)">✅</td>';
-      }
-      return '<td style="text-align:center;padding:8px 4px;font-size:.9rem;background:' + bg + ';color:var(--red)">❌</td>';
-    }).join('');
-
-    const pct = totalMeses ? Math.round(enviados / totalMeses * 100) : 0;
-    const pctColor = pct === 100 ? 'var(--green)' : pct >= 50 ? '#f59e0b' : 'var(--red)';
-    return '<tr style="border-bottom:1px solid #E2E8F0">' +
-      '<td style="padding:8px 14px;font-size:.83rem;font-weight:500;background:' + bg + ';white-space:nowrap">' + mod + '</td>' +
-      cells +
-      '<td style="text-align:center;padding:8px 10px;font-weight:700;font-size:.8rem;color:' + pctColor + ';background:' + bg + '">' +
-        enviados + '/' + totalMeses + '</td>' +
-      '</tr>';
-  }).join('');
-}
-
-// ── eSfinge Status Envio — matriz municípios × módulos ────────────────
-const _ESF = { docs: [], loaded: false };
-
-const ESF_PORTFOLIO = [
-  'Água Doce','Águas de Chapecó','Anitápolis','Armazém','Atalanta',
-  'Balneário Camboriú','Balneário Gaivota','Balneário Rincão','Bom Jardim da Serra',
-  'Braço do Norte','Braço do Trombudo','Caçador','Campo Belo do Sul','Capinzal',
-  'Celso Ramos','Chapecó','Cocal do Sul','Descanso','Dionísio Cerqueira','Forquilhinha',
-  'Grão Pará',"Herval d'Oeste",'Ibiam','Imaruí','Itajaí','Lauro Müller',
-  'Major Gercino','Major Vieira','Maracajá','Maravilha','Mondaí','Monte Carlo',
-  'Monte Castelo','Nova Veneza','Orleans','Painel','Palmitos','Passo de Torres',
-  'Passos Maia','Paulo Lopes','Pedras Grandes','Petrolândia','Piratuba','Ponte Alta',
-  'Pouso Redondo','Rancho Queimado','Sangão','Santa Cecília','São José do Cerrito',
-  'São Lourenço do Oeste','São Ludgero','São Miguel do Oeste','Schroeder','Siderópolis',
-  'Sombrio','Trombudo Central','Turvo','Urubici','Vargem','Vargem Bonita','Vidal Ramos'
-];
-
-async function renderAdminEsfinge() {
-  // Inicializar seletores de ano/mês na primeira abertura
-  const anoSel = document.getElementById('esf-ano');
-  if (!anoSel.options.length) {
-    const anoAtual = new Date().getFullYear();
-    for (let y = anoAtual; y >= anoAtual - 2; y--) {
-      anoSel.add(new Option(y, y));
+  updates.atualizado_em = new Date().toISOString();
+  const statusEl = document.getElementById('admin-edit-status');
+  statusEl.style.color = 'rgba(255,255,255,.5)';
+  statusEl.textContent = 'Salvando…';
+  try {
+    if (_editDocId) {
+      // Edição de doc existente
+      await _db.collection(_adminData.collection).doc(_editDocId).update(updates);
+      const idx = _adminData.docIds.indexOf(_editDocId);
+      if (idx >= 0) Object.assign(_adminData.docs[idx], updates);
+    } else {
+      // Novo colaborador
+      const docId = (updates.nome||Date.now().toString()).toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+      await _db.collection(_adminData.collection).doc(docId).set(updates);
+      _adminData.docs.push(updates);
+      _adminData.docIds.push(docId);
+      _adminData.filtered = _adminData.docs.slice();
+      const cc = document.getElementById('card-count-colaboradores');
+      if (cc) cc.textContent = _adminData.docs.length + ' docs';
     }
-    anoSel.value = anoAtual;
-    const mesAnterior = new Date().getMonth() || 12; // mês anterior
-    document.getElementById('esf-mes').value = mesAnterior;
+    statusEl.style.color = '#68D391';
+    statusEl.textContent = '✅ Salvo!';
+    setTimeout(() => { adminCloseEdit(); _adminRenderTable(); }, 800);
+  } catch(e) {
+    statusEl.style.color = '#FC8181';
+    statusEl.textContent = '❌ Erro: ' + e.message;
   }
-
-  if (!_ESF.loaded) {
-    document.getElementById('esf-tbody').innerHTML =
-      '<tr><td colspan="99" style="text-align:center;padding:20px;color:var(--text-muted)">Carregando dados eSfinge…</td></tr>';
-    try {
-      _ESF.docs  = await fetchFirestore('status_envio');
-      _ESF.loaded = true;
-    } catch(e) {
-      document.getElementById('esf-tbody').innerHTML =
-        '<tr><td colspan="99" style="padding:20px;color:var(--red)">Erro: ' + e.message + '</td></tr>';
-      return;
-    }
-  }
-  renderEsfingeMatrix();
 }
 
-function renderEsfingeMatrix() {
-  const ano       = parseInt(document.getElementById('esf-ano')?.value)  || new Date().getFullYear();
-  const mes       = parseInt(document.getElementById('esf-mes')?.value)  || 1;
-  const portfolio = (document.getElementById('esf-portfolio')?.value)    === 'portfolio';
-  const search    = (document.getElementById('esf-search')?.value || '').toLowerCase().trim();
-
-  // Filtrar por período
-  let docs = _ESF.docs.filter(d => d.ano == ano && d.mes == mes);
-
-  // Filtrar portfólio
-  if (portfolio) {
-    const portSet = new Set(ESF_PORTFOLIO.map(m => m.toLowerCase().trim()));
-    docs = docs.filter(d => portSet.has((d.municipio||'').toLowerCase().trim()));
-  }
-
-  // Busca por município
-  if (search) docs = docs.filter(d => (d.municipio||'').toLowerCase().includes(search));
-
-  // Módulos únicos (colunas) — ordenados
-  const modulos = [...new Set(docs.map(d => d.modulo).filter(Boolean))].sort((a,b) => a.localeCompare(b,'pt-BR'));
-
-  // Municípios únicos (linhas) — ordenados
-  const municipios = [...new Set(docs.map(d => d.municipio).filter(Boolean))].sort((a,b) => a.localeCompare(b,'pt-BR'));
-
-  document.getElementById('esf-count').textContent = municipios.length + ' municípios · ' + modulos.length + ' módulos';
-
-  if (municipios.length === 0) {
-    document.getElementById('esf-matrix-wrap').style.display = 'none';
-    document.getElementById('esf-empty').style.display = 'block';
-    return;
-  }
-  document.getElementById('esf-matrix-wrap').style.display = 'block';
-  document.getElementById('esf-empty').style.display = 'none';
-
-  // Índice: municipio+modulo → qtd_pacotes
-  const idx = {};
-  docs.forEach(d => { idx[(d.municipio||'') + '||' + (d.modulo||'')] = d.qtd_pacotes; });
-
-  // Cabeçalho
-  const thead = document.getElementById('esf-thead');
-  thead.innerHTML = '<tr>' +
-    '<th style="padding:8px 12px;background:#1C1A23;color:#fff;font-size:.75rem;font-weight:600;text-align:left;white-space:nowrap;position:sticky;left:0;z-index:2">Município</th>' +
-    modulos.map(m =>
-      `<th style="padding:8px 6px;background:#1C1A23;color:#fff;font-size:.72rem;font-weight:600;text-align:center;white-space:nowrap;max-width:100px;overflow:hidden;text-overflow:ellipsis" title="${m}">${m}</th>`
-    ).join('') +
-    '<th style="padding:8px 10px;background:#1C1A23;color:#aaa;font-size:.72rem;font-weight:600;text-align:center">Total</th>' +
-    '</tr>';
-
-  // Corpo
-  const tbody = document.getElementById('esf-tbody');
-  tbody.innerHTML = municipios.map((mun, i) => {
-    const bg = i % 2 === 0 ? '#fff' : '#F9FAFB';
-    let total = 0;
-    const cells = modulos.map(m => {
-      const qtd = idx[mun + '||' + m];
-      if (qtd === undefined || qtd === null) return `<td style="text-align:center;padding:6px 4px;color:#ccc;font-size:.9rem">—</td>`;
-      if (qtd > 0) { total++; return `<td style="text-align:center;padding:6px 4px;font-size:.9rem" title="${qtd} pacotes">✅</td>`; }
-      return `<td style="text-align:center;padding:6px 4px;font-size:.9rem;color:var(--red)">❌</td>`;
-    }).join('');
-    const pct = modulos.length ? Math.round(total / modulos.length * 100) : 0;
-    const pctColor = pct >= 80 ? 'var(--green)' : pct >= 50 ? '#f59e0b' : 'var(--red)';
-    return `<tr style="background:${bg};border-bottom:1px solid #E2E8F0">
-      <td style="padding:7px 12px;white-space:nowrap;font-size:.82rem;font-weight:500;position:sticky;left:0;background:${bg};z-index:1">${mun}</td>
-      ${cells}
-      <td style="text-align:center;padding:6px 10px;font-weight:700;font-size:.8rem;color:${pctColor}">${total}/${modulos.length}</td>
-    </tr>`;
-  }).join('');
-}
-
-function adminExportCSV() {
-  const rows = _adminState.filtered;
+function adminExportCollectionCSV() {
+  const rows = _adminData.filtered;
   if (!rows.length) return;
   const keys = Object.keys(rows[0]);
-  const csv  = [keys.join(',')].concat(rows.map(r =>
+  const csv = [keys.join(',')].concat(rows.map(r =>
     keys.map(k => '"' + (r[k]||'').toString().replace(/"/g,'""') + '"').join(',')
   )).join('\n');
   const a = document.createElement('a');
   a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
-  a.download = _adminState.collection + '_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.download = (_adminData.collection||'data') + '_' + new Date().toISOString().slice(0,10) + '.csv';
   a.click();
+}
+
+// ── Admin: Colaboradores CRUD ─────────────────────────────────────────────
+
+function adminColabAdd() {
+  _editDocId = null;
+  document.getElementById('admin-edit-title').textContent = 'Novo Colaborador';
+  document.getElementById('admin-edit-status').textContent = '';
+  const fields = ['nome','cargo','area_atuacao','area_atendimento','equipe_atendimento','email','whatsapp','whatsapp_prof','gestor'];
+  const labels = {
+    nome:'Nome', cargo:'Cargo', area_atuacao:'Área de Atuação',
+    area_atendimento:'Área de Atendimento', equipe_atendimento:'Equipe de Atendimento',
+    email:'E-mail', whatsapp:'WhatsApp Pessoal (ex: 47991234567)', whatsapp_prof:'WhatsApp Prof. (ex: 47991234567)', gestor:'Gestor'
+  };
+  document.getElementById('admin-edit-fields').innerHTML = fields.map(k =>
+    `<div style="margin-bottom:14px"><label style="color:rgba(255,255,255,.6);font-size:.78rem;display:block;margin-bottom:4px">${labels[k]||k}</label><input data-field="${k}" value="" style="width:100%;padding:8px 12px;background:#0F1117;border:1px solid #2D3748;border-radius:6px;color:#fff;font-size:.85rem"></div>`
+  ).join('');
+  document.getElementById('admin-edit-modal').style.display = 'flex';
+}
+
+async function adminColabDelete(docId) {
+  if (!confirm('Excluir colaborador "' + docId + '"?')) return;
+  try {
+    await _db.collection('colaboradores').doc(docId).delete();
+    const idx = _adminData.docIds.indexOf(docId);
+    if (idx >= 0) { _adminData.docs.splice(idx,1); _adminData.docIds.splice(idx,1); }
+    _adminData.filtered = _adminData.docs.slice();
+    document.getElementById('card-count-colaboradores').textContent = _adminData.docs.length + ' docs';
+    _adminRenderTable();
+  } catch(e) { alert('Erro ao excluir: ' + e.message); }
+}
+
+function adminColabImportCSV() {
+  document.getElementById('admin-csv-input').value = '';
+  document.getElementById('admin-csv-input').click();
+}
+
+async function adminColabProcessCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const text = await file.text();
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) { alert('CSV vazio ou sem dados.'); return; }
+  const SEP = lines[0].includes(';') ? ';' : ',';
+  const headers = lines[0].split(SEP).map(h => h.trim().replace(/^"+|"+$/g,'').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,''));
+  const MAP = { area_de_atuacao:'area_atuacao', area_de_atendimento:'area_atendimento',
+    equipe_de_atendimento:'equipe_atendimento', e_mail:'email', email:'email',
+    whatsapp:'whatsapp', celular:'whatsapp', telefone:'whatsapp', fone:'whatsapp',
+    whatsapp_prof:'whatsapp_prof', whatsapp_profissional:'whatsapp_prof', cel_prof:'whatsapp_prof', fone_prof:'whatsapp_prof' };
+  const normHeaders = headers.map(h => MAP[h] || h);
+  const rows = lines.slice(1).map(line => {
+    const vals = line.split(SEP).map(v => v.trim().replace(/^"+|"+$/g,''));
+    const obj = {};
+    normHeaders.forEach((h, i) => { if (h && vals[i]) obj[h] = vals[i]; });
+    obj.atualizado_em = new Date().toISOString();
+    return obj;
+  }).filter(r => r.nome);
+  if (!rows.length) { alert('Nenhuma linha válida no CSV (verifique se há coluna "Nome").'); return; }
+  if (!confirm('Importar ' + rows.length + ' colaboradores? Registros existentes com mesmo nome serão sobrescritos.')) return;
+  let ok = 0, err = 0;
+  for (const r of rows) {
+    try {
+      const docId = (r.nome||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+      await _db.collection('colaboradores').doc(docId).set(r, { merge: true });
+      ok++;
+    } catch(e) { err++; console.error('CSV import err:', e); }
+  }
+  alert('Importação concluída: ' + ok + ' ok, ' + err + ' erros.');
+  adminLoadCollection('colaboradores');
 }
 
 
 </script>
+
+
+</script>
+<div id="admin-overlay" style="display:none;position:fixed;inset:0;z-index:9000;background:#0F1117;overflow-y:auto;font-family:'DM Sans',sans-serif">
+
+  <!-- Header do Admin -->
+  <div style="background:#1C1A23;border-bottom:3px solid #0761FF;padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10">
+    <div style="display:flex;align-items:center;gap:12px">
+      <svg width="80" viewBox="0 0 80 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <text x="0" y="18" font-family="DM Sans,sans-serif" font-size="20" font-weight="700" fill="white">betha</text>
+      </svg>
+      <span style="color:#fff;font-size:1rem;font-weight:600;opacity:.85">Admin</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span id="admin-user-info" style="color:rgba(255,255,255,.65);font-size:.82rem"></span>
+      <button id="admin-signout-btn" onclick="adminSignOut()" style="display:none;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:5px 13px;border-radius:6px;font-size:.8rem;cursor:pointer">Sair</button>
+      <button onclick="adminClose()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:5px 13px;border-radius:6px;font-size:.8rem;cursor:pointer">✕ Fechar</button>
+    </div>
+  </div>
+
+  <!-- Login -->
+  <div id="admin-login-panel" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;gap:20px">
+    <div style="text-align:center;color:#fff;margin-bottom:8px">
+      <div style="font-size:2rem;margin-bottom:8px">🔐</div>
+      <div style="font-size:1.2rem;font-weight:700">Acesso Restrito</div>
+      <div style="font-size:.85rem;color:rgba(255,255,255,.5);margin-top:6px">Apenas administradores autorizados</div>
+    </div>
+    <button onclick="adminSignIn()" style="
+      background:#fff;color:#1C1A23;border:none;padding:13px 28px;
+      border-radius:8px;font-size:.95rem;font-weight:700;cursor:pointer;
+      display:flex;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(0,0,0,.3)">
+      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20H24v8h11.3C33.6 33.1 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.7 1.1 7.8 2.9l6-6C34.2 6.3 29.4 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 20-9 20-20 0-1.3-.1-2.7-.4-4z"/><path fill="#FF3D00" d="M6.3 14.7l7 5.1C15 16 19.2 13 24 13c3 0 5.7 1.1 7.8 2.9l6-6C34.2 6.3 29.4 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.9 13.5-5l-6.2-5.2C29.5 35.5 26.9 36 24 36c-5.2 0-9.6-3-11.3-7.3l-6.9 5.3C9.4 39.8 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20H24v8h11.3c-.9 2.6-2.6 4.8-4.8 6.3l6.2 5.2C40.4 36.2 44 30.6 44 24c0-1.3-.1-2.7-.4-4z"/></svg>
+      Entrar com Google
+    </button>
+    <div id="admin-login-error" style="color:#FC8181;font-size:.82rem;display:none"></div>
+  </div>
+
+  <!-- Painel de dados (visível após login) -->
+  <div id="admin-data-panel" style="display:none;padding:28px;max-width:1400px;margin:0 auto">
+
+    <!-- Cards das coleções -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-bottom:28px">
+      <div onclick="adminLoadCollection('jira_chamados')" style="background:#1C1A23;border:1px solid #2D3748;border-radius:10px;padding:20px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='#0761FF'" onmouseout="this.style.borderColor='#2D3748'">
+        <div style="font-size:1.6rem;margin-bottom:8px">📊</div>
+        <div style="color:#fff;font-weight:700;font-size:1rem">Chamados</div>
+        <div style="color:rgba(255,255,255,.5);font-size:.8rem;margin-top:4px">jira_chamados</div>
+        <div id="card-count-jira_chamados" style="color:#0761FF;font-size:1.4rem;font-weight:700;margin-top:10px">—</div>
+      </div>
+      <div onclick="adminLoadCollection('jira_chamados_issues')" style="background:#1C1A23;border:1px solid #2D3748;border-radius:10px;padding:20px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='#0761FF'" onmouseout="this.style.borderColor='#2D3748'">
+        <div style="font-size:1.6rem;margin-bottom:8px">🎫</div>
+        <div style="color:#fff;font-weight:700;font-size:1rem">Issues</div>
+        <div style="color:rgba(255,255,255,.5);font-size:.8rem;margin-top:4px">jira_chamados_issues</div>
+        <div id="card-count-jira_chamados_issues" style="color:#0761FF;font-size:1.4rem;font-weight:700;margin-top:10px">—</div>
+      </div>
+      <div onclick="adminLoadCollection('municipios')" style="background:#1C1A23;border:1px solid #2D3748;border-radius:10px;padding:20px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='#0761FF'" onmouseout="this.style.borderColor='#2D3748'">
+        <div style="font-size:1.6rem;margin-bottom:8px">🗺️</div>
+        <div style="color:#fff;font-weight:700;font-size:1rem">Municípios × Região</div>
+        <div style="color:rgba(255,255,255,.5);font-size:.8rem;margin-top:4px">municipios</div>
+        <div id="card-count-municipios" style="color:#0761FF;font-size:1.4rem;font-weight:700;margin-top:10px">—</div>
+      </div>
+      <div onclick="adminLoadCollection('status_envio')" style="background:#1C1A23;border:1px solid #2D3748;border-radius:10px;padding:20px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='#0761FF'" onmouseout="this.style.borderColor='#2D3748'">
+        <div style="font-size:1.6rem;margin-bottom:8px">📋</div>
+        <div style="color:#fff;font-weight:700;font-size:1rem">Status de Envio</div>
+        <div style="color:rgba(255,255,255,.5);font-size:.8rem;margin-top:4px">status_envio</div>
+        <div id="card-count-status_envio" style="color:#0761FF;font-size:1.4rem;font-weight:700;margin-top:10px">—</div>
+      </div>
+      <div onclick="adminLoadCollection('_meta')" style="background:#1C1A23;border:1px solid #2D3748;border-radius:10px;padding:20px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='#0761FF'" onmouseout="this.style.borderColor='#2D3748'">
+        <div style="font-size:1.6rem;margin-bottom:8px">⚙️</div>
+        <div style="color:#fff;font-weight:700;font-size:1rem">Metadados</div>
+        <div style="color:rgba(255,255,255,.5);font-size:.8rem;margin-top:4px">_meta</div>
+        <div id="card-count-_meta" style="color:#0761FF;font-size:1.4rem;font-weight:700;margin-top:10px">—</div>
+      </div>
+      <div onclick="adminLoadCollection('colaboradores')" style="background:#1C1A23;border:1px solid #2D3748;border-radius:10px;padding:20px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='#38A169'" onmouseout="this.style.borderColor='#2D3748'">
+        <div style="font-size:1.6rem;margin-bottom:8px">👥</div>
+        <div style="color:#fff;font-weight:700;font-size:1rem">Colaboradores</div>
+        <div style="color:rgba(255,255,255,.5);font-size:.8rem;margin-top:4px">colaboradores</div>
+        <div id="card-count-colaboradores" style="color:#38A169;font-size:1.4rem;font-weight:700;margin-top:10px">—</div>
+      </div>
+    </div>
+
+    <!-- Área da tabela -->
+    <div id="admin-table-area" style="display:none;background:#1C1A23;border:1px solid #2D3748;border-radius:10px;overflow:hidden">
+      <!-- Toolbar -->
+      <div style="padding:16px 20px;border-bottom:1px solid #2D3748;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span id="admin-table-title" style="color:#fff;font-weight:700;font-size:1rem"></span>
+        <input id="admin-table-search" type="text" placeholder="Filtrar…" oninput="adminTableFilter()" style="padding:6px 12px;background:#0F1117;border:1px solid #2D3748;border-radius:6px;color:#fff;font-size:.83rem;width:200px">
+        <button onclick="adminExportCollectionCSV()" style="padding:6px 14px;background:#0761FF;color:#fff;border:none;border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer">⬇ CSV</button>
+        <span id="admin-colab-actions" style="display:none;gap:8px">
+          <button onclick="adminColabAdd()" style="padding:6px 14px;background:#38A169;color:#fff;border:none;border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer">+ Adicionar</button>
+          <button onclick="adminColabImportCSV()" style="padding:6px 14px;background:#805AD5;color:#fff;border:none;border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer">&#x1F4C2; Importar CSV</button>
+          <input id="admin-csv-input" type="file" accept=".csv" style="display:none" onchange="adminColabProcessCSV(this)">
+        </span>
+        <span id="admin-table-count" style="color:rgba(255,255,255,.4);font-size:.78rem;margin-left:auto"></span>
+      </div>
+      <!-- Tabela -->
+      <div style="overflow-x:auto;max-height:60vh;overflow-y:auto">
+        <table id="admin-main-table" style="width:100%;border-collapse:collapse;font-size:.82rem">
+          <thead id="admin-main-thead"></thead>
+          <tbody id="admin-main-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de edição -->
+<div id="admin-edit-modal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center">
+  <div style="background:#1C1A23;border:1px solid #2D3748;border-radius:12px;padding:28px;width:90%;max-width:560px;max-height:85vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h3 id="admin-edit-title" style="color:#fff;margin:0;font-size:1rem">Editar documento</h3>
+      <button onclick="adminCloseEdit()" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:1.2rem;cursor:pointer">✕</button>
+    </div>
+    <div id="admin-edit-fields"></div>
+    <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+      <button onclick="adminCloseEdit()" style="padding:8px 20px;background:#2D3748;border:none;color:#fff;border-radius:6px;cursor:pointer;font-size:.85rem">Cancelar</button>
+      <button onclick="adminSaveEdit()" style="padding:8px 20px;background:#0761FF;border:none;color:#fff;border-radius:6px;cursor:pointer;font-size:.85rem;font-weight:600">Salvar</button>
+    </div>
+    <div id="admin-edit-status" style="margin-top:10px;font-size:.8rem;text-align:center"></div>
+  </div>
+</div>
+
+
 </body>
 </html>
