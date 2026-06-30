@@ -932,6 +932,7 @@ function getVerticalColor(v) {
 
 // Busca dados de uma aba da planilha via Apps Script web app
 function fetchSheet(sheetName) {
+  if (!CONFIG.APPS_SCRIPT_URL) return Promise.resolve([]); // URL não configurada — falha rápida
   return new Promise((resolve, reject) => {
     const cbName = '_sheetCb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
     const timeout = setTimeout(() => {
@@ -966,6 +967,7 @@ function fetchSheet(sheetName) {
 // ─── Comparativo Semanal ─────────────────────────────────────────
 // Variante de fetchSheet com data explícita (não usa state.selectedDate)
 function fetchSheetOnDate(sheetName, dateStr) {
+  if (!CONFIG.APPS_SCRIPT_URL) return Promise.resolve([]);
   return new Promise((resolve, reject) => {
     const cbName = '_wkCb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
     const timeout = setTimeout(() => { delete window[cbName]; reject(new Error('timeout')); }, 20000);
@@ -4493,7 +4495,4 @@ function adminExportCSV() {
           <button onclick="adminMunImportCSV()" style="padding:6px 14px;background:#805AD5;color:#fff;border:none;border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer">&#x1F4C2; Importar CSV (municipio,regiao)</button>
           <input id="admin-mun-csv-input" type="file" accept=".csv" style="display:none" onchange="adminMunProcessCSV(this)">
         </span>
-        <span id="admin-table-count" style="color:rgba(255,255,255,.4);font-size:.78rem;margin-left:auto"></span>
-      </div>
-      <!-- Tabela -->
-      <div style="overflow-x:aut
+        <span id="adm
