@@ -3863,6 +3863,302 @@ async function adminColabProcessCSV(input) {
 }
 
 
+// ── TCE SC / eSfinge funções ──────────────────────────────────────────
+function switchTCETab(tab) {
+  const certBtn   = document.getElementById('tce-tab-certidao');
+  const envioBtn  = document.getElementById('tce-tab-envio');
+  const certPane  = document.getElementById('tce-pane-certidao');
+  const envioPane = document.getElementById('tce-pane-envio');
+  if (!certBtn) return;
+
+  const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#4F46E5';
+  const mutedColor  = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#6B7280';
+
+  if (tab === 'certidao') {
+    certPane.style.display  = 'block';
+    envioPane.style.display = 'none';
+    certBtn.style.borderBottomColor  = 'var(--accent)';
+    certBtn.style.color              = 'var(--accent)';
+    envioBtn.style.borderBottomColor = 'transparent';
+    envioBtn.style.color             = 'var(--text-muted)';
+  } else {
+    certPane.style.display  = 'none';
+    envioPane.style.display = 'block';
+    certBtn.style.borderBottomColor  = 'transparent';
+    certBtn.style.color              = 'var(--text-muted)';
+    envioBtn.style.borderBottomColor = 'var(--accent)';
+    envioBtn.style.color             = 'var(--accent)';
+    initEnvioPanel();
+  }
+}
+
+// ── Status de Envio — painel município × meses ──────────────────────────
+const _ENVIO = { docs: [], loaded: false, loading: false };
+const MESES_LABEL = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+async function initEnvioPanel() {
+  // Preencher ano
+  const anoSel = document.getElementById('envio-ano');
+  if (!anoSel.options.length) {
+    const anoAtual = new Date().getFullYear();
+    for (let y = anoAtual; y >= anoAtual - 3; y--) anoSel.add(new Option(y, y));
+    anoSel.value = anoAtual;
+  }
+
+  // Carregar docs se ainda não fez
+  if (!_ENVIO.loaded && !_ENVIO.loading) {
+    _ENVIO.loading = true;
+    document.getElementById('envio-select-hint').style.display = 'none';
+    document.getElementById('envio-loading').style.display = 'block';
+    try {
+      _ENVIO.docs = await fetchFirestore('status_envio');
+      _ENVIO.loaded = true;
+
+      // Preencher dropdown de municípios com todos únicos, ordenados
+      const munSel = document.getElementById('envio-mun');
+      const allMuns = [...new Set(_ENVIO.docs.map(d => d.municipio).filter(Boolean))].sort((a,b) => a.localeCompare(b,'pt-BR'));
+      allMuns.forEach(m => munSel.add(new Option(m, m)));
+
+      // Selecionar automaticamente o município do portfólio se houver apenas 1 conta carregada
+      // (ou deixar o usuário escolher)
+    } catch(e) {
+      document.getElementById('envio-loading').style.display = 'none';
+      document.getElementById('envio-empty').style.display = 'block';
+      document.getElementById('envio-empty').innerHTML =
+        '<div style="font-size:2rem;margin-bottom:8px">⚠️</div><div>Erro ao carregar dados: ' + e.message + '</div>';
+      _ENVIO.loading = false;
+      return;
+    }
+    _ENVIO.loading = false;
+  }
+
+  document.getElementById('envio-loading').style.display = 'none';
+  const munSel = document.getElementById('envio-mun');
+  if (!munSel.value) {
+    document.getElementById('envio-select-hint').style.display = 'block';
+    return;
+  }
+  renderEnvioView();
+}
+
+function renderEnvioView() {
+  if (!_ENVIO.loaded) return; // ainda carregando
+
+  const mun = (document.getElementById('envio-mun')?.value || '').trim();
+  const ano = parseInt(document.getElementById('envio-ano')?.value) || new Date().getFullYear();
+
+  document.getElementById('envio-select-hint').style.display = !mun ? 'block' : 'none';
+  if (!mun) return;
+
+  // Filtrar por município e ano
+  const docs = _ENVIO.docs.filter(d => d.municipio === mun && d.ano == ano);
+
+  // Módulos únicos (linhas) ordenados
+  const modulos = [...new Set(docs.map(d => d.modulo).filter(Boolean))].sort((a,b) => a.localeCompare(b,'pt-BR'));
+
+  document.getElementById('envio-info').textContent = modulos.length + ' módulos · ' + ano;
+
+  if (modulos.length === 0) {
+    document.getElementById('envio-wrap').style.display = 'none';
+    document.getElementById('envio-empty').style.display = 'block';
+    document.getElementById('envio-empty').innerHTML =
+      '<div style="font-size:2rem;margin-bottom:8px">📭</div>' +
+      '<div>Nenhum dado encontrado para <strong>' + mun + '</strong> em ' + ano + '.</div>' +
+      '<div style="font-size:.78rem;margin-top:8px">Execute a extensão eSfinge Updater para importar dados.</div>';
+    return;
+  }
+  document.getElementById('envio-wrap').style.display = 'block';
+  document.getElementById('envio-empty').style.display = 'none';
+
+  // Índice: mes → modulo → qtd_pacotes
+  const idx = {};
+  docs.forEach(d => {
+    if (!idx[d.mes]) idx[d.mes] = {};
+    idx[d.mes][d.modulo] = d.qtd_pacotes;
+  });
+
+  // Quais meses têm pelo menos 1 dado
+  const mesesComDado = [1,2,3,4,5,6,7,8,9,10,11,12].filter(m => idx[m]);
+  const meses = mesesComDado.length ? [1,2,3,4,5,6,7,8,9,10,11,12] : [];
+
+  // Cabeçalho: Módulo | Jan | Fev | … | Dez | Total
+  const TH = 'style="padding:9px 10px;background:#1C1A23;color:#fff;font-size:.78rem;font-weight:600;text-align:center;white-space:nowrap"';
+  const TH_LEFT = 'style="padding:9px 14px;background:#1C1A23;color:#fff;font-size:.78rem;font-weight:600;text-align:left;white-space:nowrap;min-width:200px"';
+  const thead = document.getElementById('envio-thead');
+  thead.innerHTML = '<tr>' +
+    '<th ' + TH_LEFT + '>Módulo</th>' +
+    meses.map(m => {
+      const hasData = !!idx[m];
+      const color   = hasData ? '#fff' : '#666';
+      return '<th ' + TH + ' style="padding:9px 10px;background:#1C1A23;color:' + color + ';font-size:.78rem;font-weight:600;text-align:center;white-space:nowrap">' +
+        MESES_LABEL[m-1] + '</th>';
+    }).join('') +
+    '<th ' + TH + '>Enviados</th>' +
+    '</tr>';
+
+  // Corpo: uma linha por módulo
+  const tbody = document.getElementById('envio-tbody');
+  tbody.innerHTML = modulos.map((mod, i) => {
+    const bg = i % 2 === 0 ? '#fff' : '#F9FAFB';
+    let enviados = 0;
+    let totalMeses = 0;
+    const cells = meses.map(m => {
+      if (!idx[m]) {
+        // mês sem nenhum dado — coluna "vazia"
+        return '<td style="text-align:center;padding:8px 4px;color:#ddd;font-size:.85rem;background:' + bg + '">—</td>';
+      }
+      totalMeses++;
+      const qtd = idx[m][mod];
+      if (qtd === undefined || qtd === null) {
+        return '<td style="text-align:center;padding:8px 4px;color:#bbb;font-size:.85rem;background:' + bg + '">—</td>';
+      }
+      if (qtd > 0) {
+        enviados++;
+        return '<td style="text-align:center;padding:8px 4px;font-size:.9rem;background:' + bg + '" title="' + qtd + ' pacote(s)">✅</td>';
+      }
+      return '<td style="text-align:center;padding:8px 4px;font-size:.9rem;background:' + bg + ';color:var(--red)">❌</td>';
+    }).join('');
+
+    const pct = totalMeses ? Math.round(enviados / totalMeses * 100) : 0;
+    const pctColor = pct === 100 ? 'var(--green)' : pct >= 50 ? '#f59e0b' : 'var(--red)';
+    return '<tr style="border-bottom:1px solid #E2E8F0">' +
+      '<td style="padding:8px 14px;font-size:.83rem;font-weight:500;background:' + bg + ';white-space:nowrap">' + mod + '</td>' +
+      cells +
+      '<td style="text-align:center;padding:8px 10px;font-weight:700;font-size:.8rem;color:' + pctColor + ';background:' + bg + '">' +
+        enviados + '/' + totalMeses + '</td>' +
+      '</tr>';
+  }).join('');
+}
+
+// ── eSfinge Status Envio — matriz municípios × módulos ────────────────
+
+const _ESF = { docs: [], loaded: false };
+
+const ESF_PORTFOLIO = [
+  'Água Doce','Águas de Chapecó','Anitápolis','Armazém','Atalanta',
+  'Balneário Camboriú','Balneário Gaivota','Balneário Rincão','Bom Jardim da Serra',
+  'Braço do Norte','Braço do Trombudo','Caçador','Campo Belo do Sul','Capinzal',
+  'Celso Ramos','Chapecó','Cocal do Sul','Descanso','Dionísio Cerqueira','Forquilhinha',
+  'Grão Pará',"Herval d'Oeste",'Ibiam','Imaruí','Itajaí','Lauro Müller',
+  'Major Gercino','Major Vieira','Maracajá','Maravilha','Mondaí','Monte Carlo',
+  'Monte Castelo','Nova Veneza','Orleans','Painel','Palmitos','Passo de Torres',
+  'Passos Maia','Paulo Lopes','Pedras Grandes','Petrolândia','Piratuba','Ponte Alta',
+  'Pouso Redondo','Rancho Queimado','Sangão','Santa Cecília','São José do Cerrito',
+  'São Lourenço do Oeste','São Ludgero','São Miguel do Oeste','Schroeder','Siderópolis',
+  'Sombrio','Trombudo Central','Turvo','Urubici','Vargem','Vargem Bonita','Vidal Ramos'
+];
+
+async function renderAdminEsfinge() {
+  // Inicializar seletores de ano/mês na primeira abertura
+  const anoSel = document.getElementById('esf-ano');
+  if (!anoSel.options.length) {
+    const anoAtual = new Date().getFullYear();
+    for (let y = anoAtual; y >= anoAtual - 2; y--) {
+      anoSel.add(new Option(y, y));
+    }
+    anoSel.value = anoAtual;
+    const mesAnterior = new Date().getMonth() || 12; // mês anterior
+    document.getElementById('esf-mes').value = mesAnterior;
+  }
+
+  if (!_ESF.loaded) {
+    document.getElementById('esf-tbody').innerHTML =
+      '<tr><td colspan="99" style="text-align:center;padding:20px;color:var(--text-muted)">Carregando dados eSfinge…</td></tr>';
+    try {
+      _ESF.docs  = await fetchFirestore('status_envio');
+      _ESF.loaded = true;
+    } catch(e) {
+      document.getElementById('esf-tbody').innerHTML =
+        '<tr><td colspan="99" style="padding:20px;color:var(--red)">Erro: ' + e.message + '</td></tr>';
+      return;
+    }
+  }
+  renderEsfingeMatrix();
+}
+
+function renderEsfingeMatrix() {
+  const ano       = parseInt(document.getElementById('esf-ano')?.value)  || new Date().getFullYear();
+  const mes       = parseInt(document.getElementById('esf-mes')?.value)  || 1;
+  const portfolio = (document.getElementById('esf-portfolio')?.value)    === 'portfolio';
+  const search    = (document.getElementById('esf-search')?.value || '').toLowerCase().trim();
+
+  // Filtrar por período
+  let docs = _ESF.docs.filter(d => d.ano == ano && d.mes == mes);
+
+  // Filtrar portfólio
+  if (portfolio) {
+    const portSet = new Set(ESF_PORTFOLIO.map(m => m.toLowerCase().trim()));
+    docs = docs.filter(d => portSet.has((d.municipio||'').toLowerCase().trim()));
+  }
+
+  // Busca por município
+  if (search) docs = docs.filter(d => (d.municipio||'').toLowerCase().includes(search));
+
+  // Módulos únicos (colunas) — ordenados
+  const modulos = [...new Set(docs.map(d => d.modulo).filter(Boolean))].sort((a,b) => a.localeCompare(b,'pt-BR'));
+
+  // Municípios únicos (linhas) — ordenados
+  const municipios = [...new Set(docs.map(d => d.municipio).filter(Boolean))].sort((a,b) => a.localeCompare(b,'pt-BR'));
+
+  document.getElementById('esf-count').textContent = municipios.length + ' municípios · ' + modulos.length + ' módulos';
+
+  if (municipios.length === 0) {
+    document.getElementById('esf-matrix-wrap').style.display = 'none';
+    document.getElementById('esf-empty').style.display = 'block';
+    return;
+  }
+  document.getElementById('esf-matrix-wrap').style.display = 'block';
+  document.getElementById('esf-empty').style.display = 'none';
+
+  // Índice: municipio+modulo → qtd_pacotes
+  const idx = {};
+  docs.forEach(d => { idx[(d.municipio||'') + '||' + (d.modulo||'')] = d.qtd_pacotes; });
+
+  // Cabeçalho
+  const thead = document.getElementById('esf-thead');
+  thead.innerHTML = '<tr>' +
+    '<th style="padding:8px 12px;background:#1C1A23;color:#fff;font-size:.75rem;font-weight:600;text-align:left;white-space:nowrap;position:sticky;left:0;z-index:2">Município</th>' +
+    modulos.map(m =>
+      `<th style="padding:8px 6px;background:#1C1A23;color:#fff;font-size:.72rem;font-weight:600;text-align:center;white-space:nowrap;max-width:100px;overflow:hidden;text-overflow:ellipsis" title="${m}">${m}</th>`
+    ).join('') +
+    '<th style="padding:8px 10px;background:#1C1A23;color:#aaa;font-size:.72rem;font-weight:600;text-align:center">Total</th>' +
+    '</tr>';
+
+  // Corpo
+  const tbody = document.getElementById('esf-tbody');
+  tbody.innerHTML = municipios.map((mun, i) => {
+    const bg = i % 2 === 0 ? '#fff' : '#F9FAFB';
+    let total = 0;
+    const cells = modulos.map(m => {
+      const qtd = idx[mun + '||' + m];
+      if (qtd === undefined || qtd === null) return `<td style="text-align:center;padding:6px 4px;color:#ccc;font-size:.9rem">—</td>`;
+      if (qtd > 0) { total++; return `<td style="text-align:center;padding:6px 4px;font-size:.9rem" title="${qtd} pacotes">✅</td>`; }
+      return `<td style="text-align:center;padding:6px 4px;font-size:.9rem;color:var(--red)">❌</td>`;
+    }).join('');
+    const pct = modulos.length ? Math.round(total / modulos.length * 100) : 0;
+    const pctColor = pct >= 80 ? 'var(--green)' : pct >= 50 ? '#f59e0b' : 'var(--red)';
+    return `<tr style="background:${bg};border-bottom:1px solid #E2E8F0">
+      <td style="padding:7px 12px;white-space:nowrap;font-size:.82rem;font-weight:500;position:sticky;left:0;background:${bg};z-index:1">${mun}</td>
+      ${cells}
+      <td style="text-align:center;padding:6px 10px;font-weight:700;font-size:.8rem;color:${pctColor}">${total}/${modulos.length}</td>
+    </tr>`;
+  }).join('');
+}
+
+function adminExportCSV() {
+  const rows = _adminState.filtered;
+  if (!rows.length) return;
+  const keys = Object.keys(rows[0]);
+  const csv  = [keys.join(',')].concat(rows.map(r =>
+    keys.map(k => '"' + (r[k]||'').toString().replace(/"/g,'""') + '"').join(',')
+  )).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = _adminState.collection + '_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
+
 </script>
 
 
