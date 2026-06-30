@@ -666,46 +666,52 @@
 
       <!-- Painel: Status de Envio -->
       <div id="tce-pane-envio" style="display:none;padding-top:16px">
-        <!-- Filtros -->
-        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px">
+        <!-- Filtros de competência + Buscar -->
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px;padding:14px 16px;background:#F8FAFC;border:1px solid var(--border);border-radius:10px">
           <div>
-            <label style="font-size:.78rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Ano</label>
-            <select id="envio-ano" onchange="renderEnvioView()" style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:.85rem;background:#fff;color:var(--text)"></select>
+            <label style="font-size:.75rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Competência</label>
+            <div style="display:flex;gap:6px;align-items:center">
+              <select id="envio-mes" style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:.85rem;background:#fff;color:var(--text)">
+                <option value="1">Jan</option><option value="2">Fev</option><option value="3">Mar</option>
+                <option value="4">Abr</option><option value="5">Mai</option><option value="6">Jun</option>
+                <option value="7">Jul</option><option value="8">Ago</option><option value="9">Set</option>
+                <option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option>
+              </select>
+              <select id="envio-ano" style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:.85rem;background:#fff;color:var(--text)"></select>
+              <button onclick="buscarEnvio()" id="envio-buscar-btn" style="padding:8px 18px;background:var(--accent);border:none;color:#fff;border-radius:6px;font-size:.85rem;font-weight:600;cursor:pointer;white-space:nowrap">🔍 Buscar</button>
+            </div>
           </div>
+          <div style="width:1px;background:var(--border);align-self:stretch;margin:0 4px"></div>
           <div>
-            <label style="font-size:.78rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Mês</label>
-            <select id="envio-mes" onchange="renderEnvioView()" style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:.85rem;background:#fff;color:var(--text)">
-              <option value="1">Jan</option><option value="2">Fev</option><option value="3">Mar</option>
-              <option value="4">Abr</option><option value="5">Mai</option><option value="6">Jun</option>
-              <option value="7">Jul</option><option value="8">Ago</option><option value="9">Set</option>
-              <option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option>
-            </select>
-          </div>
-          <div>
-            <label style="font-size:.78rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Municípios</label>
-            <select id="envio-scope" onchange="renderEnvioView()" style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:.85rem;background:#fff;color:var(--text)">
-              <option value="portfolio">Apenas portfólio (61)</option>
+            <label style="font-size:.75rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Municípios</label>
+            <select id="envio-scope" onchange="renderEnvioView()" style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:.85rem;background:#fff;color:var(--text)">
+              <option value="portfolio">Portfólio (61)</option>
               <option value="todos">Todos</option>
             </select>
           </div>
           <div>
-            <label style="font-size:.78rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Buscar</label>
-            <input id="envio-search" type="text" placeholder="Filtrar município…" oninput="renderEnvioView()" style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:.85rem;width:160px">
+            <label style="font-size:.75rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Filtrar município</label>
+            <input id="envio-search" type="text" placeholder="Nome…" oninput="renderEnvioView()" style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:.85rem;width:150px">
           </div>
-          <div style="display:flex;align-items:center;gap:6px;padding:7px 12px;border:1.5px solid var(--border);border-radius:6px;background:#fff;cursor:pointer" onclick="document.getElementById('envio-nao-enviou').click()">
+          <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;border:1.5px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;align-self:flex-end" onclick="document.getElementById('envio-nao-enviou').click()">
             <input type="checkbox" id="envio-nao-enviou" onchange="renderEnvioView()" style="cursor:pointer;accent-color:var(--accent)">
-            <label for="envio-nao-enviou" style="font-size:.83rem;font-weight:600;cursor:pointer;color:var(--red)">❌ Apenas quem não enviou</label>
+            <label for="envio-nao-enviou" style="font-size:.82rem;font-weight:600;cursor:pointer;color:var(--red);white-space:nowrap">❌ Não enviou</label>
           </div>
-          <span id="envio-info" style="font-size:.78rem;color:var(--text-muted);align-self:center"></span>
+          <span id="envio-info" style="font-size:.78rem;color:var(--text-muted);align-self:flex-end;padding-bottom:4px"></span>
+        </div>
+        <!-- Estado inicial: aguardando busca -->
+        <div id="envio-hint" style="text-align:center;padding:48px;color:var(--text-muted)">
+          <div style="font-size:2rem;margin-bottom:8px">📅</div>
+          <div>Selecione a competência e clique em <strong>Buscar</strong>.</div>
         </div>
         <!-- Legenda -->
-        <div style="display:flex;gap:16px;font-size:.75rem;color:var(--text-muted);margin-bottom:12px">
+        <div id="envio-legenda" style="display:none;gap:16px;font-size:.75rem;color:var(--text-muted);margin-bottom:12px">
           <span>✅ Enviou</span>
           <span style="color:var(--red)">❌ Não enviou (0 pacotes)</span>
           <span>— Sem registro</span>
         </div>
-        <!-- Matriz: municípios (linhas) × módulos (colunas) -->
-        <div id="envio-wrap" style="overflow-x:auto;border-radius:8px;border:1px solid var(--border)">
+        <!-- Matriz -->
+        <div id="envio-wrap" style="display:none;overflow-x:auto;border-radius:8px;border:1px solid var(--border)">
           <table id="envio-table" style="width:100%;border-collapse:collapse;font-size:.82rem">
             <thead id="envio-thead"></thead>
             <tbody id="envio-tbody"></tbody>
@@ -716,7 +722,7 @@
           <div id="envio-empty-msg">Nenhum dado encontrado.</div>
           <div style="font-size:.78rem;margin-top:8px">Execute a extensão eSfinge Updater para importar dados.</div>
         </div>
-        <div id="envio-loading" style="text-align:center;padding:48px;color:var(--text-muted)">
+        <div id="envio-loading" style="display:none;text-align:center;padding:48px;color:var(--text-muted)">
           <div style="font-size:2rem;margin-bottom:8px">⏳</div>
           Carregando dados do Firestore…
         </div>
@@ -3892,141 +3898,157 @@ function switchTCETab(tab) {
   }
 }
 
-// ── Status de Envio — painel município × meses ──────────────────────────
-const _ENVIO = { docs: [], loaded: false, loading: false };
+// ── Status de Envio — carrega por competência (lazy + filtrado no Firestore) ────
+// Cache: chave "ano-mes" → array de docs
+const _ENVIO = { cache: {}, currentKey: null };
 const MESES_LABEL = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
-async function initEnvioPanel() {
-  // Preencher ano
+function initEnvioPanel() {
+  // Preencher seletor de ano apenas na primeira vez
   const anoSel = document.getElementById('envio-ano');
   if (!anoSel.options.length) {
     const anoAtual = new Date().getFullYear();
     for (let y = anoAtual; y >= anoAtual - 3; y--) anoSel.add(new Option(y, y));
     anoSel.value = anoAtual;
+    // Pré-selecionar mês anterior
+    const mesAnterior = new Date().getMonth() || 12;
+    document.getElementById('envio-mes').value = mesAnterior;
   }
-
-  // Carregar docs se ainda não fez
-  if (!_ENVIO.loaded && !_ENVIO.loading) {
-    _ENVIO.loading = true;
-    document.getElementById('envio-select-hint').style.display = 'none';
-    document.getElementById('envio-loading').style.display = 'block';
-    try {
-      _ENVIO.docs = await fetchFirestore('status_envio');
-      _ENVIO.loaded = true;
-
-      // Preencher dropdown de municípios com todos únicos, ordenados
-      const munSel = document.getElementById('envio-mun');
-      const allMuns = [...new Set(_ENVIO.docs.map(d => d.municipio).filter(Boolean))].sort((a,b) => a.localeCompare(b,'pt-BR'));
-      allMuns.forEach(m => munSel.add(new Option(m, m)));
-
-      // Selecionar automaticamente o município do portfólio se houver apenas 1 conta carregada
-      // (ou deixar o usuário escolher)
-    } catch(e) {
-      document.getElementById('envio-loading').style.display = 'none';
-      document.getElementById('envio-empty').style.display = 'block';
-      document.getElementById('envio-empty').innerHTML =
-        '<div style="font-size:2rem;margin-bottom:8px">⚠️</div><div>Erro ao carregar dados: ' + e.message + '</div>';
-      _ENVIO.loading = false;
-      return;
-    }
-    _ENVIO.loading = false;
+  // Mostrar hint se ainda não buscou nada
+  if (!_ENVIO.currentKey) {
+    document.getElementById('envio-hint').style.display = 'block';
+    document.getElementById('envio-legenda').style.display = 'none';
+    document.getElementById('envio-wrap').style.display = 'none';
+    document.getElementById('envio-empty').style.display = 'none';
+    document.getElementById('envio-loading').style.display = 'none';
   }
+}
 
-  document.getElementById('envio-loading').style.display = 'none';
-  const munSel = document.getElementById('envio-mun');
-  if (!munSel.value) {
-    document.getElementById('envio-select-hint').style.display = 'block';
+async function buscarEnvio() {
+  const ano = parseInt(document.getElementById('envio-ano')?.value) || new Date().getFullYear();
+  const mes = parseInt(document.getElementById('envio-mes')?.value) || 1;
+  const key = ano + '-' + mes;
+
+  // Esconder hint, mostrar loading
+  document.getElementById('envio-hint').style.display = 'none';
+  document.getElementById('envio-empty').style.display = 'none';
+  document.getElementById('envio-wrap').style.display = 'none';
+  document.getElementById('envio-legenda').style.display = 'none';
+
+  if (_ENVIO.cache[key]) {
+    // Já temos em cache — renderizar direto
+    _ENVIO.currentKey = key;
+    renderEnvioView();
     return;
   }
-  renderEnvioView();
+
+  // Buscar no Firestore apenas a competência selecionada
+  const btn = document.getElementById('envio-buscar-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Buscando…';
+  document.getElementById('envio-loading').style.display = 'block';
+
+  try {
+    const snap = await _db.collection('status_envio')
+      .where('ano', '==', ano)
+      .where('mes', '==', mes)
+      .get();
+    _ENVIO.cache[key] = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+    _ENVIO.currentKey = key;
+    renderEnvioView();
+  } catch(e) {
+    document.getElementById('envio-loading').style.display = 'none';
+    document.getElementById('envio-empty').style.display = 'block';
+    document.getElementById('envio-empty').innerHTML =
+      '<div style="font-size:2rem;margin-bottom:8px">⚠️</div><div>Erro ao carregar: ' + e.message + '</div>';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔍 Buscar';
+  }
 }
 
 function renderEnvioView() {
-  if (!_ENVIO.loaded) return; // ainda carregando
+  if (!_ENVIO.currentKey) return;
+  const docs = _ENVIO.cache[_ENVIO.currentKey] || [];
+  const [ano, mes] = _ENVIO.currentKey.split('-').map(Number);
 
-  const mun = (document.getElementById('envio-mun')?.value || '').trim();
-  const ano = parseInt(document.getElementById('envio-ano')?.value) || new Date().getFullYear();
+  document.getElementById('envio-loading').style.display = 'none';
 
-  document.getElementById('envio-select-hint').style.display = !mun ? 'block' : 'none';
-  if (!mun) return;
+  const portfolio = document.getElementById('envio-scope')?.value === 'portfolio';
+  const search    = (document.getElementById('envio-search')?.value || '').toLowerCase().trim();
+  const naoEnviou = document.getElementById('envio-nao-enviou')?.checked;
 
-  // Filtrar por município e ano
-  const docs = _ENVIO.docs.filter(d => d.municipio === mun && d.ano == ano);
+  // Filtrar por portfólio
+  const portSet = new Set(ESF_PORTFOLIO.map(m => m.toLowerCase().trim()));
+  let filtered = portfolio
+    ? docs.filter(d => portSet.has((d.municipio||'').toLowerCase().trim()))
+    : docs;
 
-  // Módulos únicos (linhas) ordenados
-  const modulos = [...new Set(docs.map(d => d.modulo).filter(Boolean))].sort((a,b) => a.localeCompare(b,'pt-BR'));
+  // Filtrar por busca de texto
+  if (search) filtered = filtered.filter(d => (d.municipio||'').toLowerCase().includes(search));
 
-  document.getElementById('envio-info').textContent = modulos.length + ' módulos · ' + ano;
+  // Módulos únicos (colunas)
+  const modulos = [...new Set(filtered.map(d => d.modulo).filter(Boolean))].sort((a,b) => a.localeCompare(b,'pt-BR'));
 
-  if (modulos.length === 0) {
+  // Municípios únicos (linhas)
+  let municipios = [...new Set(filtered.map(d => d.municipio).filter(Boolean))].sort((a,b) => a.localeCompare(b,'pt-BR'));
+
+  // Índice: municipio+modulo → qtd_pacotes
+  const idx = {};
+  filtered.forEach(d => { idx[(d.municipio||'') + '||' + (d.modulo||'')] = d.qtd_pacotes; });
+
+  // Filtro "apenas não enviou": municípios com pelo menos 1 módulo = 0 ou sem registro
+  if (naoEnviou) {
+    municipios = municipios.filter(mun =>
+      modulos.some(m => { const q = idx[mun+'||'+m]; return q === 0 || q === undefined || q === null; })
+    );
+  }
+
+  const mesLabel = MESES_LABEL[mes-1];
+  document.getElementById('envio-info').textContent =
+    municipios.length + ' municípios · ' + modulos.length + ' módulos · ' + mesLabel + '/' + ano;
+
+  if (municipios.length === 0) {
     document.getElementById('envio-wrap').style.display = 'none';
+    document.getElementById('envio-legenda').style.display = 'none';
     document.getElementById('envio-empty').style.display = 'block';
     document.getElementById('envio-empty').innerHTML =
       '<div style="font-size:2rem;margin-bottom:8px">📭</div>' +
-      '<div>Nenhum dado encontrado para <strong>' + mun + '</strong> em ' + ano + '.</div>' +
+      '<div>Nenhum dado para ' + mesLabel + '/' + ano + (portfolio ? ' no portfólio' : '') + '.</div>' +
       '<div style="font-size:.78rem;margin-top:8px">Execute a extensão eSfinge Updater para importar dados.</div>';
     return;
   }
-  document.getElementById('envio-wrap').style.display = 'block';
+
   document.getElementById('envio-empty').style.display = 'none';
+  document.getElementById('envio-wrap').style.display = 'block';
+  document.getElementById('envio-legenda').style.display = 'flex';
 
-  // Índice: mes → modulo → qtd_pacotes
-  const idx = {};
-  docs.forEach(d => {
-    if (!idx[d.mes]) idx[d.mes] = {};
-    idx[d.mes][d.modulo] = d.qtd_pacotes;
-  });
+  const TH = s => `<th style="padding:8px 8px;background:#1C1A23;color:#fff;font-size:.75rem;font-weight:600;text-align:${s};white-space:nowrap${s==='left'?';position:sticky;left:0;z-index:2':''}">`
 
-  // Quais meses têm pelo menos 1 dado
-  const mesesComDado = [1,2,3,4,5,6,7,8,9,10,11,12].filter(m => idx[m]);
-  const meses = mesesComDado.length ? [1,2,3,4,5,6,7,8,9,10,11,12] : [];
-
-  // Cabeçalho: Módulo | Jan | Fev | … | Dez | Total
-  const TH = 'style="padding:9px 10px;background:#1C1A23;color:#fff;font-size:.78rem;font-weight:600;text-align:center;white-space:nowrap"';
-  const TH_LEFT = 'style="padding:9px 14px;background:#1C1A23;color:#fff;font-size:.78rem;font-weight:600;text-align:left;white-space:nowrap;min-width:200px"';
-  const thead = document.getElementById('envio-thead');
-  thead.innerHTML = '<tr>' +
-    '<th ' + TH_LEFT + '>Módulo</th>' +
-    meses.map(m => {
-      const hasData = !!idx[m];
-      const color   = hasData ? '#fff' : '#666';
-      return '<th ' + TH + ' style="padding:9px 10px;background:#1C1A23;color:' + color + ';font-size:.78rem;font-weight:600;text-align:center;white-space:nowrap">' +
-        MESES_LABEL[m-1] + '</th>';
-    }).join('') +
-    '<th ' + TH + '>Enviados</th>' +
+  document.getElementById('envio-thead').innerHTML = '<tr>' +
+    TH('left') + 'Município</th>' +
+    modulos.map(m => TH('center') + m + '</th>').join('') +
+    TH('center') + 'Total</th>' +
     '</tr>';
 
-  // Corpo: uma linha por módulo
-  const tbody = document.getElementById('envio-tbody');
-  tbody.innerHTML = modulos.map((mod, i) => {
+  document.getElementById('envio-tbody').innerHTML = municipios.map((mun, i) => {
     const bg = i % 2 === 0 ? '#fff' : '#F9FAFB';
-    let enviados = 0;
-    let totalMeses = 0;
-    const cells = meses.map(m => {
-      if (!idx[m]) {
-        // mês sem nenhum dado — coluna "vazia"
-        return '<td style="text-align:center;padding:8px 4px;color:#ddd;font-size:.85rem;background:' + bg + '">—</td>';
-      }
-      totalMeses++;
-      const qtd = idx[m][mod];
-      if (qtd === undefined || qtd === null) {
-        return '<td style="text-align:center;padding:8px 4px;color:#bbb;font-size:.85rem;background:' + bg + '">—</td>';
-      }
-      if (qtd > 0) {
-        enviados++;
-        return '<td style="text-align:center;padding:8px 4px;font-size:.9rem;background:' + bg + '" title="' + qtd + ' pacote(s)">✅</td>';
-      }
-      return '<td style="text-align:center;padding:8px 4px;font-size:.9rem;background:' + bg + ';color:var(--red)">❌</td>';
+    let ok = 0;
+    const cells = modulos.map(m => {
+      const qtd = idx[mun + '||' + m];
+      if (qtd === undefined || qtd === null)
+        return `<td style="text-align:center;padding:7px 4px;color:#ccc;font-size:.88rem;background:${bg}">—</td>`;
+      if (qtd > 0) { ok++;
+        return `<td style="text-align:center;padding:7px 4px;font-size:.88rem;background:${bg}" title="${qtd} pacote(s)">✅</td>`; }
+      return `<td style="text-align:center;padding:7px 4px;font-size:.88rem;color:var(--red);background:${bg}">❌</td>`;
     }).join('');
-
-    const pct = totalMeses ? Math.round(enviados / totalMeses * 100) : 0;
-    const pctColor = pct === 100 ? 'var(--green)' : pct >= 50 ? '#f59e0b' : 'var(--red)';
-    return '<tr style="border-bottom:1px solid #E2E8F0">' +
-      '<td style="padding:8px 14px;font-size:.83rem;font-weight:500;background:' + bg + ';white-space:nowrap">' + mod + '</td>' +
-      cells +
-      '<td style="text-align:center;padding:8px 10px;font-weight:700;font-size:.8rem;color:' + pctColor + ';background:' + bg + '">' +
-        enviados + '/' + totalMeses + '</td>' +
-      '</tr>';
+    const pct = modulos.length ? Math.round(ok/modulos.length*100) : 0;
+    const pctC = pct>=80?'var(--green)':pct>=50?'#f59e0b':'var(--red)';
+    return `<tr style="border-bottom:1px solid #E2E8F0">
+      <td style="padding:7px 12px;white-space:nowrap;font-size:.82rem;font-weight:500;position:sticky;left:0;background:${bg};z-index:1">${mun}</td>
+      ${cells}
+      <td style="text-align:center;padding:7px 10px;font-weight:700;font-size:.78rem;color:${pctC};background:${bg}">${ok}/${modulos.length}</td>
+    </tr>`;
   }).join('');
 }
 
